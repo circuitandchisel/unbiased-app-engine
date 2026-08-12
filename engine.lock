@@ -1,0 +1,15 @@
+# Pinned codex app-server engine.
+#
+# This file is the single source of truth for which engine build this repo
+# wraps. Every consumer — fetch-engine.sh, gen-schema.sh, conformance — reads
+# the version from here, so bumping the engine is a one-file change that CI
+# can verify end to end (fetch → schema regen → conformance) before it lands.
+#
+# Checksums are of the release tarballs, computed from
+# https://github.com/openai/codex/releases/download/rust-v<version>/
+version = 0.147.0
+
+sha256 codex-app-server-aarch64-apple-darwin.tar.gz = e8d180c107a9285861dd09988bc50557f6aa7f44c83daeec343521072787cf33
+sha256 codex-app-server-x86_64-apple-darwin.tar.gz = 7968232e388a7deddf0648b164b67cd4bd50ff368e71480e3de8e465c6d01a98
+sha256 codex-app-server-aarch64-unknown-linux-musl.tar.gz = 0bb78fa190cdcbc689dc34d34358b054a5c7e81a6d899d97065ea139aeb3ba9c
+sha256 codex-app-server-x86_64-unknown-linux-musl.tar.gz = 2eb81b0aa75dee49b0f64490eb6bda7aff6c6f437cdd77453feac8400f802c09

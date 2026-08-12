@@ -1,0 +1,6 @@
+# Fetched engine + built supervisor live here; both are reproducible from
+# engine.lock and source.
+/bin/
+
+__pycache__/
+*.pyc
