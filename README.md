@@ -20,16 +20,29 @@ Unbiased desktop app.
 ## Quickstart
 
 ```bash
-scripts/fetch-engine.sh                       # download + verify the pinned engine
-go build -o bin/unbiased-app-engine ./cmd/unbiased-app-engine
+make fetch build                              # verified engine + supervisor in bin/
 bin/unbiased-app-engine                       # speaks JSONL JSON-RPC on stdio
 ```
 
 Smoke it end to end (live Pareto turns; needs `unbiased login` first):
 
 ```bash
-conformance/run.sh
+make conformance
 ```
+
+## Bundling for unbiased-app
+
+```bash
+make bundle                                   # → dist/bundle/
+```
+
+`dist/bundle/` holds `unbiased-app-engine` + `pareto-app-server` side by
+side — the complete brain as one droppable artifact. The desktop app's build
+copies it into the app package (Tauri resources / Electron extraResources)
+and spawns `unbiased-app-engine` from there; the supervisor finds the engine
+next to its own executable, so no paths, config, or network are needed at
+runtime. When shipping a signed macOS app, remember both binaries must be
+re-signed with the app's Developer ID during packaging.
 
 ## Layout
 

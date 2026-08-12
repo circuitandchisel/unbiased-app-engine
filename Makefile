@@ -1,0 +1,35 @@
+# unbiased-app-engine build targets.
+#
+# `make bundle` is the contract with unbiased-app: it produces dist/bundle/,
+# a self-contained directory holding the supervisor plus the pinned engine.
+# The desktop app's build copies that directory into its package and spawns
+# unbiased-app-engine from it — nothing else crosses the repo boundary.
+
+.PHONY: build test fetch bundle conformance clean
+
+build:
+	go build -o bin/unbiased-app-engine ./cmd/unbiased-app-engine
+
+test:
+	go vet ./...
+	go test ./...
+
+# Engine binaries only ever enter the tree through the engine.lock checksum
+# gate in fetch-engine.sh.
+fetch bin/pareto-app-server:
+	scripts/fetch-engine.sh
+
+bundle: bin/pareto-app-server
+	rm -rf dist/bundle
+	mkdir -p dist/bundle
+	go build -o dist/bundle/unbiased-app-engine ./cmd/unbiased-app-engine
+	cp bin/pareto-app-server dist/bundle/
+	@echo "bundle ready: dist/bundle/ ($$(du -sh dist/bundle | cut -f1))"
+
+# Live suite: spends a handful of small Pareto turns through the production
+# gateway. Needs `unbiased login` (or UNBIASED_API_KEY).
+conformance:
+	conformance/run.sh
+
+clean:
+	rm -rf bin dist
