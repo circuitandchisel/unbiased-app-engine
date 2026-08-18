@@ -54,6 +54,12 @@ func TestRenderConfigLocksProvider(t *testing.T) {
 		`env_key = "UNBIASED_API_KEY"`,
 		`wire_api = "responses"`,
 		`multi_agent = false`,
+		// Multi-agent v2: namespace tools ride through the gateway
+		// (gpu-router#414). Sub-agents inherit the pinned Pareto provider.
+		`[features.multi_agent_v2]`,
+		`enabled = true`,
+		`max_concurrent_threads_per_session = 5`,
+		`expose_spawn_agent_model_overrides = false`,
 	} {
 		if !strings.Contains(cfg, want) {
 			t.Errorf("config missing %q", want)

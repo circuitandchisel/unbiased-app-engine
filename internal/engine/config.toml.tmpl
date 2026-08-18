@@ -16,6 +16,20 @@ wire_api = "responses"
 env_key = "UNBIASED_API_KEY"
 
 [features]
-# Subagent fan-out multiplies gateway traffic and adds non-function tool
-# shapes; keep the engine single-agent until Pareto-side support is proven.
+# v1 (plain-tool) collab stays off — multi-agent ships as v2 below.
 multi_agent = false
+
+# Multi-agent v2: the engine spawns sub-agents in-process; their collaboration
+# tools ride a Responses-API namespace, flattened to `collaboration__*`
+# functions and split back by the gateway (gpu-router#414, live). Sub-agents
+# inherit this provider config, so Pareto-only-by-construction extends to
+# every spawn.
+[features.multi_agent_v2]
+enabled = true
+# Root + sub-agents per session. Every concurrent agent multiplies gateway
+# spend per user action — raise deliberately, not casually.
+max_concurrent_threads_per_session = 5
+# Keep model/reasoning overrides OFF the spawn tool schema: sub-agents always
+# inherit "pareto", and advertising choices would invite the model to request
+# deployments the gateway doesn't serve.
+expose_spawn_agent_model_overrides = false
