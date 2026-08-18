@@ -60,6 +60,7 @@ func TestRenderConfigLocksProvider(t *testing.T) {
 		`enabled = true`,
 		`max_concurrent_threads_per_session = 5`,
 		`expose_spawn_agent_model_overrides = false`,
+		`hide_spawn_agent_metadata = false`,
 	} {
 		if !strings.Contains(cfg, want) {
 			t.Errorf("config missing %q", want)
