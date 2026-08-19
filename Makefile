@@ -15,9 +15,13 @@ test:
 	go test ./...
 
 # Engine binaries only ever enter the tree through the engine.lock checksum
-# gate in fetch-engine.sh.
-fetch bin/pareto-app-server:
+# gate in fetch-engine.sh. The binary depends on the lock (and the script),
+# so bumping the pin re-fetches — a bare existence check would silently
+# bundle the previous engine.
+fetch: bin/pareto-app-server
+bin/pareto-app-server: engine.lock scripts/fetch-engine.sh
 	scripts/fetch-engine.sh
+	touch bin/pareto-app-server
 
 bundle: bin/pareto-app-server
 	rm -rf dist/bundle
