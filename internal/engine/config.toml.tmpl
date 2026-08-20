@@ -9,6 +9,18 @@ model_provider = "unbiased"
 model_reasoning_effort = "none"
 web_search = "disabled"
 
+# Pareto is not in codex's model catalog, so codex falls back to generic
+# metadata: a 272k window and, critically, NO auto-compaction limit. Nothing
+# ever compacted, so history grew unbounded — a real conversation reached
+# ~419k input tokens, at which point every request died with "stream closed
+# before response.completed" and the thread could not recover (even "Hello"
+# failed). 128k is the context window the rest of the ecosystem declares for
+# Pareto (unbiased-cli's pi provider block, from the integration guide);
+# compaction arms at ~75% of it so the summarization request itself, plus the
+# turn that follows, still fit.
+model_context_window = 128000
+model_auto_compact_token_limit = 96000
+
 [model_providers.unbiased]
 name = "Unbiased"
 base_url = "{{BASE_URL}}"
