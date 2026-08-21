@@ -30,10 +30,27 @@ web_search = "disabled"
 # always costs one turn. The reactive path is the safety net for when this
 # window is wrong, not the primary plan.
 #
-# 128k matches what the rest of the ecosystem declares for Pareto
-# (unbiased-cli's pi provider block, from the integration guide). Compaction
-# arms at ~75% so the summarization request itself, plus the turn that
-# follows, still fit.
+# The value is the AUDITED served window, not a round number: tier-1
+# (deepseek-v4-flash, qwen3.6-35b-a3b, llama-3.3-70b and the synth variants)
+# all serve 131,072, and tier-1 answers first, so it binds. glm-5.2 (262,144)
+# and gpt-5.6-sol (~1.05M) are wider; bge-m3's 8,192 is the embeddings route,
+# which no conversation reaches.
+#
+# Do NOT round this down for safety. Codex already applies its own margin:
+# effective_context_window_percent (95, not settable from config — Pareto is
+# absent from codex's model catalog, so we inherit the default) means the
+# session reports 131072 * 0.95 = 124,518. Declaring 128,000 stacked a second
+# undocumented margin on top and made the context gauge understate the real
+# ceiling by 9,472 tokens for reasons nothing in this file explained.
+#
+# Note the deliberate divergence: unbiased-cli's provider block declares
+# 128000. That is a round number from the integration guide; this is the
+# measured one. Reconcile toward 131072 if the CLI is ever revisited.
+#
+# Compaction arms at ~73% of the window so the summarization request itself,
+# plus the turn that follows, still fit. Raising the window does NOT move that
+# trigger: auto_compact_token_limit() is min(config, 90% of window), and
+# min(96000, 117964) is still 96000.
 #
 # Note on history: an earlier version of this comment claimed a conversation
 # reached ~419k input tokens and died. That was a misreading of
@@ -41,7 +58,7 @@ web_search = "disabled"
 # live context was 26,892. Those failures were a gateway-side stream sever,
 # fixed separately in gpu-router#433. The settings below are still right, for
 # the reasons above rather than that anecdote.
-model_context_window = 128000
+model_context_window = 131072
 model_auto_compact_token_limit = 96000
 
 [model_providers.unbiased]
