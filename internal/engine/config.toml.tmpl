@@ -88,3 +88,36 @@ expose_spawn_agent_model_overrides = false
 # Include the engine-assigned nickname in spawn outputs — the desktop app
 # titles each sub-agent with it (Codex-style names like "Ramanujan").
 hide_spawn_agent_metadata = false
+
+# MCP servers, rendered from engine.BuiltinMCPServers() — empty by default, in
+# which case no [mcp_servers.*] table is written and the engine behaves exactly
+# as it did before this section existed.
+#
+# codex has always supported these; the gateway is what changed. An MCP
+# server's tools arrive as a `namespace` group, which chat-completions cannot
+# express, so gpu-router#414 flattens each to `<namespace>__<tool>` upstream
+# and splits it back on the way out — the same path multi-agent v2 above has
+# used in production since 2026-08. That is why this is a config change and
+# not a protocol project.
+#
+# Two things worth knowing before adding a server:
+#
+#  1. A stdio server does NOT inherit the engine's environment. Measured
+#     against the pinned 0.147 binary on 2026-08-24: codex builds a child
+#     environment of HOME, LOGNAME, PATH, SHELL, TMPDIR, USER and
+#     __CF_USER_TEXT_ENCODING, plus whatever this file's `env` sets — nine
+#     variables total. UNBIASED_API_KEY is stripped, and an unrelated variable
+#     planted in the engine's own environment did not reach the child. So the
+#     `env` table below is the ONLY channel for giving a server a variable,
+#     which is also why engine.validate() refuses to let it set
+#     UNBIASED_API_KEY: that would put back a credential codex deliberately
+#     takes away.
+#  2. An MCP server can raise mcpServerElicitationRequest — a server-initiated
+#     request asking the USER a question, and codex advertises support for it
+#     to every server it connects to (observed in the handshake:
+#     capabilities.elicitation = {form, url}). The desktop app declines every
+#     server request it does not recognise ("declining unhandled server
+#     request", src/main/index.ts), so an eliciting server gets a decline
+#     instead of an answer. Safe, but not useful: wire the app side before
+#     shipping a server that depends on it.
+{{MCP_SERVERS}}

@@ -41,6 +41,7 @@ func run() error {
 		engineBin = flag.String("engine", "", "path to the pinned engine binary (default: bin/pareto-app-server next to this executable, then $PATH)")
 		homeDir   = flag.String("home", engine.DefaultHomeDir(userHome), "engine home directory (regenerated on every start)")
 		baseURL   = flag.String("base-url", envOr("UNBIASED_BASE_URL", engine.DefaultBaseURL), "Unbiased gateway base URL")
+		mcpConfig = flag.String("mcp-config", engine.DefaultMCPConfigPath(userHome), "JSON file of user-added MCP servers (missing is fine)")
 	)
 	flag.Parse()
 
@@ -54,7 +55,19 @@ func run() error {
 		return err
 	}
 
-	if err := engine.MaterializeHome(*homeDir, *baseURL); err != nil {
+	// MCP servers: the compiled-in set, plus whatever the desktop app has
+	// written to the user's config. Both go through the same validation before
+	// a single character reaches config.toml — the file chooses WHICH servers
+	// run, never what the TOML says.
+	userServers, err := engine.LoadUserMCPServers(*mcpConfig)
+	if err != nil {
+		return err
+	}
+	mcpServers, err := engine.MergeMCPServers(engine.BuiltinMCPServers(), userServers)
+	if err != nil {
+		return err
+	}
+	if err := engine.MaterializeHome(*homeDir, *baseURL, mcpServers); err != nil {
 		return err
 	}
 

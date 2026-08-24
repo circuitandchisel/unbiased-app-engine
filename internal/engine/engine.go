@@ -60,18 +60,34 @@ func DefaultHomeDir(home string) string {
 	return filepath.Join(home, ".unbiased", "app-engine", "home")
 }
 
-// RenderConfig produces the config.toml contents for the given gateway URL.
-// Split from MaterializeHome so tests can assert on content without a
-// filesystem.
-func RenderConfig(baseURL string) string {
-	return strings.ReplaceAll(configTemplate, "{{BASE_URL}}", baseURL)
+// RenderConfig produces the config.toml contents for the given gateway URL
+// and MCP server set. Split from MaterializeHome so tests can assert on
+// content without a filesystem.
+//
+// The error is for an unusable MCP server — a bad name, no transport, a value
+// that cannot be quoted safely. Failing here is the point: the alternatives
+// are a config the engine rejects at boot, or one it accepts whose tool names
+// the gateway then refuses mid-conversation, two repos away from the cause.
+func RenderConfig(baseURL string, servers []MCPServer) (string, error) {
+	if err := validateMCPServers(servers); err != nil {
+		return "", err
+	}
+	out := strings.ReplaceAll(configTemplate, "{{BASE_URL}}", baseURL)
+	return strings.ReplaceAll(out, "{{MCP_SERVERS}}", renderMCPServers(servers)), nil
 }
 
 // MaterializeHome (re)creates the engine home directory and rewrites its
 // config.toml from the embedded template. Rewriting every start is the point:
 // whatever an engine or a previous run left behind, the provider config is
 // ours again before the engine boots.
-func MaterializeHome(dir, baseURL string) error {
+func MaterializeHome(dir, baseURL string, servers []MCPServer) error {
+	// Render before touching the filesystem: an invalid MCP server must not
+	// leave a half-updated home behind, and the existing config.toml is still
+	// the last good one until the rename below.
+	contents, err := RenderConfig(baseURL, servers)
+	if err != nil {
+		return err
+	}
 	if err := os.MkdirAll(dir, 0o700); err != nil {
 		return fmt.Errorf("creating engine home: %w", err)
 	}
@@ -82,7 +98,7 @@ func MaterializeHome(dir, baseURL string) error {
 		return fmt.Errorf("staging config: %w", err)
 	}
 	defer os.Remove(tmp.Name()) // no-op after a successful rename
-	if _, err := tmp.WriteString(RenderConfig(baseURL)); err != nil {
+	if _, err := tmp.WriteString(contents); err != nil {
 		tmp.Close()
 		return fmt.Errorf("writing config: %w", err)
 	}

@@ -46,7 +46,10 @@ func TestResolveKeyMissingEverything(t *testing.T) {
 }
 
 func TestRenderConfigLocksProvider(t *testing.T) {
-	cfg := RenderConfig("https://gw.example/v1")
+	cfg, err := RenderConfig("https://gw.example/v1", nil)
+	if err != nil {
+		t.Fatal(err)
+	}
 	for _, want := range []string{
 		`model = "pareto"`,
 		`model_provider = "unbiased"`,
@@ -73,7 +76,7 @@ func TestRenderConfigLocksProvider(t *testing.T) {
 
 func TestMaterializeHomeRewrites(t *testing.T) {
 	dir := filepath.Join(t.TempDir(), "home")
-	if err := MaterializeHome(dir, DefaultBaseURL); err != nil {
+	if err := MaterializeHome(dir, DefaultBaseURL, nil); err != nil {
 		t.Fatal(err)
 	}
 	path := filepath.Join(dir, "config.toml")
@@ -83,7 +86,7 @@ func TestMaterializeHomeRewrites(t *testing.T) {
 	if err := os.WriteFile(path, []byte("model = \"gpt-5.5\"\n"), 0o600); err != nil {
 		t.Fatal(err)
 	}
-	if err := MaterializeHome(dir, DefaultBaseURL); err != nil {
+	if err := MaterializeHome(dir, DefaultBaseURL, nil); err != nil {
 		t.Fatal(err)
 	}
 	data, err := os.ReadFile(path)
