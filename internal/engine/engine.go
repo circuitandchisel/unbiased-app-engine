@@ -1,11 +1,23 @@
 // Package engine materializes a private, Pareto-locked CODEX_HOME and execs
 // the pinned codex-app-server binary inside it.
 //
-// The design invariant: the engine's entire view of the world is a directory
-// this package wrote moments ago. It never reads ~/.codex, never inherits a
-// user's provider config, and receives exactly one credential — the Unbiased
-// API key — via the environment. Clients that spawn us get a stock app-server
-// speaking the documented JSON-RPC protocol on stdio, already aimed at Pareto.
+// The design invariant: config.toml is a directory this package wrote moments
+// ago. It never reads ~/.codex, never inherits a user's provider config, and
+// receives exactly one credential — the Unbiased API key — via the
+// environment. Clients that spawn us get a stock app-server speaking the
+// documented JSON-RPC protocol on stdio, already aimed at Pareto.
+//
+// The invariant covers config, NOT the whole home. Two subtrees are the
+// engine's own and survive every start:
+//
+//	skills/.system/   codex materializes its built-in skills here at boot.
+//	skills/<name>/    codex's own `skill-installer` installs here, so
+//	                  reclaiming this directory would delete skills the agent
+//	                  had just been asked to install.
+//
+// Skills therefore are not locked down the way the provider is. The desktop
+// app surfaces what is present (every entry reports a scope) rather than
+// pretending the set is ours to choose.
 package engine
 
 import (
