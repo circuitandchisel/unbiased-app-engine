@@ -96,6 +96,31 @@ type MCPServer struct {
 	URL               string `json:"url,omitempty"`
 	BearerTokenEnvVar string `json:"bearerTokenEnvVar,omitempty"`
 
+	// OAuthClientID names an OAuth client WE registered with the provider.
+	//
+	// Without it codex falls back to dynamic client registration, which sends
+	// a hardcoded client_name of "Codex" — so the provider's consent screen
+	// reads "Codex is requesting access to your Honeycomb account" inside a
+	// product that is not Codex. That name is not configurable: it appears in
+	// the binary only in the DCR request, never as a config key. Supplying a
+	// client_id skips registration entirely and the provider then shows the
+	// application we registered, with our name and our logo.
+	//
+	// Scopes travel with it because a pre-registered client is granted what it
+	// asked for at registration time, and OAuthResource covers providers that
+	// require an RFC 8707 resource indicator.
+	// Enabled turns a server off WITHOUT forgetting it. Absent means on, so
+	// every existing file keeps its behaviour. A disabled server is simply not
+	// written to config.toml, which is what codex reads — but its entry, and
+	// crucially its OAuth client id, stay on disk. Deleting the server instead
+	// would throw away a registration the user had to approve in a browser,
+	// and re-adding it would mint a new client at the provider.
+	Enabled *bool `json:"enabled,omitempty"`
+
+	OAuthClientID string   `json:"oauthClientId,omitempty"`
+	Scopes        []string `json:"scopes,omitempty"`
+	OAuthResource string   `json:"oauthResource,omitempty"`
+
 	// StartupTimeoutSec bounds the handshake; ToolTimeoutSec bounds one call.
 	// Zero means "let codex use its default" and omits the key.
 	StartupTimeoutSec int `json:"startupTimeoutSec,omitempty"`
@@ -190,6 +215,16 @@ func (s MCPServer) validate() error {
 	}
 	if hasStdio && s.BearerTokenEnvVar != "" {
 		return fmt.Errorf("mcp server %q: BearerTokenEnvVar applies to http servers only", s.Name)
+	}
+	if hasStdio && (s.OAuthClientID != "" || len(s.Scopes) > 0 || s.OAuthResource != "") {
+		return fmt.Errorf("mcp server %q: OAuth settings apply to http servers only", s.Name)
+	}
+	// The client id is written into config.toml verbatim, so it is held to the
+	// same quoting rule as every other value there.
+	for _, v := range append([]string{s.OAuthClientID, s.OAuthResource}, s.Scopes...) {
+		if strings.ContainsAny(v, "\"\\") || strings.ContainsFunc(v, func(r rune) bool { return r < 0x20 }) {
+			return fmt.Errorf("mcp server %q: OAuth values cannot contain quotes, backslashes or control characters", s.Name)
+		}
 	}
 	if s.BearerTokenEnvVar != "" && !mcpEnvKeyRe.MatchString(s.BearerTokenEnvVar) {
 		return fmt.Errorf("mcp server %q: BearerTokenEnvVar %q is not a valid environment variable name", s.Name, s.BearerTokenEnvVar)
@@ -298,6 +333,12 @@ func renderMCPServers(servers []MCPServer) string {
 	}
 	var b strings.Builder
 	for _, s := range servers {
+		// Disabled servers are validated like any other — a bad entry should
+		// be reported whether or not it is currently switched on — but they
+		// are not written out, so codex never starts them.
+		if s.Enabled != nil && !*s.Enabled {
+			continue
+		}
 		fmt.Fprintf(&b, "\n[mcp_servers.%s]\n", s.Name)
 		if s.Command != "" {
 			fmt.Fprintf(&b, "command = %s\n", tomlString(s.Command))
@@ -324,6 +365,13 @@ func renderMCPServers(servers []MCPServer) string {
 			if s.BearerTokenEnvVar != "" {
 				fmt.Fprintf(&b, "bearer_token_env_var = %s\n", tomlString(s.BearerTokenEnvVar))
 			}
+			if len(s.Scopes) > 0 {
+				fmt.Fprintf(&b, "scopes = %s\n", tomlStringArray(s.Scopes))
+			}
+			if s.OAuthResource != "" {
+				fmt.Fprintf(&b, "oauth_resource = %s\n", tomlString(s.OAuthResource))
+			}
+
 		}
 		if s.StartupTimeoutSec > 0 {
 			fmt.Fprintf(&b, "startup_timeout_sec = %d\n", s.StartupTimeoutSec)
@@ -333,6 +381,13 @@ func renderMCPServers(servers []MCPServer) string {
 		}
 		if len(s.EnabledTools) > 0 {
 			fmt.Fprintf(&b, "enabled_tools = %s\n", tomlStringArray(s.EnabledTools))
+		}
+		// MUST be last for this server. A TOML sub-table header ends the
+		// parent table, so any scalar written after it would silently land
+		// inside [mcp_servers.NAME.oauth] instead of on the server itself.
+		if s.OAuthClientID != "" {
+			fmt.Fprintf(&b, "\n[mcp_servers.%s.oauth]\n", s.Name)
+			fmt.Fprintf(&b, "client_id = %s\n", tomlString(s.OAuthClientID))
 		}
 	}
 	return b.String()

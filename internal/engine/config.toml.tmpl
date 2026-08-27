@@ -9,6 +9,26 @@ model_provider = "unbiased"
 model_reasoning_effort = "none"
 web_search = "disabled"
 
+# The loopback port codex listens on while an MCP OAuth sign-in is in flight.
+#
+# Pinned, not left to pick a free port, because the redirect URI has to be
+# PREDICTABLE. The app registers our own OAuth client with a provider before
+# handing codex its client_id — that registration must declare the exact
+# redirect URI codex will later use, and an ephemeral port makes that
+# impossible. With the port fixed the whole URI is computable:
+#
+#   http://127.0.0.1:45999/callback/<base64url(sha256(server_url)[:9])>
+#
+# The path half was measured, not guessed: the same server URL under two
+# different server names produced a byte-identical path, and the derivation
+# above reproduced it exactly for two unrelated URLs.
+#
+# Why this matters: without a client_id of our own, codex registers itself
+# dynamically and sends a hardcoded client_name of "Codex", so the provider's
+# consent screen reads "Codex is requesting access" inside a product that is
+# not Codex. That name is not configurable anywhere in the binary.
+mcp_oauth_callback_port = 45999
+
 # Pareto is not in codex's model catalog, so codex falls back to generic
 # metadata: a 272k window and, critically, NO auto-compaction limit. Both
 # halves are wrong for us — tier-1 actually serves 131,072, and with no limit
