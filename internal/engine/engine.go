@@ -88,6 +88,13 @@ func RenderConfig(baseURL string, servers []MCPServer) (string, error) {
 	return strings.ReplaceAll(out, "{{MCP_SERVERS}}", renderMCPServers(servers)), nil
 }
 
+// resolveHome substitutes the {{HOME}} placeholder the managed-plugin
+// marketplace line carries — RenderConfig cannot, because it does not know
+// the directory; MaterializeHome does.
+func resolveHome(contents, dir string) string {
+	return strings.ReplaceAll(contents, "{{HOME}}", dir)
+}
+
 // MaterializeHome (re)creates the engine home directory and rewrites its
 // config.toml from the embedded template. Rewriting every start is the point:
 // whatever an engine or a previous run left behind, the provider config is
@@ -100,8 +107,15 @@ func MaterializeHome(dir, baseURL string, servers []MCPServer) error {
 	if err != nil {
 		return err
 	}
+	contents = resolveHome(contents, dir)
 	if err := os.MkdirAll(dir, 0o700); err != nil {
 		return fmt.Errorf("creating engine home: %w", err)
+	}
+	// The plugin files must exist before codex reads the config that points
+	// at them, and they regenerate every start for the same reason the config
+	// does — a removed connector's secret must not linger.
+	if err := WriteManagedPlugins(dir, servers); err != nil {
+		return err
 	}
 	// Write-then-rename in the same directory so a crash mid-write can never
 	// leave the engine reading a truncated config.
