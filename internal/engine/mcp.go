@@ -1,6 +1,8 @@
 package engine
 
 import (
+	"crypto/sha256"
+	"encoding/binary"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -121,6 +123,17 @@ type MCPServer struct {
 	Scopes        []string `json:"scopes,omitempty"`
 	OAuthResource string   `json:"oauthResource,omitempty"`
 
+	// OAuthClientSecret routes the whole server through codex's PLUGIN
+	// machinery instead of a [mcp_servers] table, because the pinned binary's
+	// config surface has nowhere to put a secret: its McpServerOAuthConfig
+	// parses client_id and nothing else, while the plugin .mcp.json schema
+	// takes client_id, client_secret and callback_port — the bundled Google
+	// connectors ship exactly that shape. Google's installed-app token
+	// exchange requires the secret (which Google itself documents as
+	// non-confidential for native apps), so without this field Gmail, Drive
+	// and Calendar cannot complete a sign-in at all.
+	OAuthClientSecret string `json:"oauthClientSecret,omitempty"`
+
 	// StartupTimeoutSec bounds the handshake; ToolTimeoutSec bounds one call.
 	// Zero means "let codex use its default" and omits the key.
 	StartupTimeoutSec int `json:"startupTimeoutSec,omitempty"`
@@ -216,12 +229,15 @@ func (s MCPServer) validate() error {
 	if hasStdio && s.BearerTokenEnvVar != "" {
 		return fmt.Errorf("mcp server %q: BearerTokenEnvVar applies to http servers only", s.Name)
 	}
-	if hasStdio && (s.OAuthClientID != "" || len(s.Scopes) > 0 || s.OAuthResource != "") {
+	if hasStdio && (s.OAuthClientID != "" || len(s.Scopes) > 0 || s.OAuthResource != "" || s.OAuthClientSecret != "") {
 		return fmt.Errorf("mcp server %q: OAuth settings apply to http servers only", s.Name)
 	}
 	// The client id is written into config.toml verbatim, so it is held to the
 	// same quoting rule as every other value there.
-	for _, v := range append([]string{s.OAuthClientID, s.OAuthResource}, s.Scopes...) {
+	if s.OAuthClientSecret != "" && s.OAuthClientID == "" {
+		return fmt.Errorf("mcp server %q: OAuthClientSecret without OAuthClientID", s.Name)
+	}
+	for _, v := range append([]string{s.OAuthClientID, s.OAuthResource, s.OAuthClientSecret}, s.Scopes...) {
 		if strings.ContainsAny(v, "\"\\") || strings.ContainsFunc(v, func(r rune) bool { return r < 0x20 }) {
 			return fmt.Errorf("mcp server %q: OAuth values cannot contain quotes, backslashes or control characters", s.Name)
 		}
@@ -291,6 +307,143 @@ func checkTOMLSafe(v string) error {
 	return nil
 }
 
+// managedPluginServers returns the enabled servers that must ship as plugins
+// because they carry an OAuth client secret.
+func managedPluginServers(servers []MCPServer) []MCPServer {
+	var out []MCPServer
+	for _, s := range servers {
+		if s.OAuthClientSecret == "" {
+			continue
+		}
+		if s.Enabled != nil && !*s.Enabled {
+			continue
+		}
+		out = append(out, s)
+	}
+	return out
+}
+
+// secretProxyPort mirrors SECRET_PROXY_PORTS/secretProxyPort in the desktop
+// app's src/main/oauth-proxy.ts — the app listens there, these plugin files
+// dial there, and the two must agree or the connector dials a dead port. The
+// proxy exists because the pinned codex loses a plugin's client_secret
+// between authorize and token exchange; the app-side proxy re-injects it.
+func secretProxyPort(name string) int {
+	switch name {
+	case "gmail":
+		return 45991
+	case "google-calendar":
+		return 45992
+	case "google-drive":
+		return 45993
+	}
+	var h uint32
+	for _, c := range name {
+		h = h*31 + uint32(c)
+	}
+	return 45900 + int(h%80)
+}
+
+// WriteManagedPlugins materializes the plugin directories the managed
+// marketplace lines in config.toml point at: for each secret-bearing server,
+// a minimal .codex-plugin/plugin.json, an .mcp.json carrying the OAuth
+// client, and one marketplace.json indexing them. The whole tree is rebuilt
+// from scratch each start — the same regenerate-don't-mutate rule as
+// config.toml, so a removed connector's secret does not linger on disk.
+func WriteManagedPlugins(homeDir string, servers []MCPServer) error {
+	root := filepath.Join(homeDir, "managed-plugins")
+	managed := managedPluginServers(servers)
+	if err := os.RemoveAll(root); err != nil {
+		return fmt.Errorf("clearing managed plugins: %w", err)
+	}
+	// Codex COPIES a marketplace plugin into <home>/plugins/cache/<market>/
+	// <name>/<version>/ on first load and reads the copy from then on, keyed
+	// by version. Rewriting the source is therefore invisible to it: a cache
+	// written before this connector moved to the proxy kept sending codex to
+	// the provider directly, with a secret it then dropped — the "client_secret
+	// is missing" failure survived every fix until this cache was cleared.
+	// Wiping our own marketplace's cache each start keeps the running config
+	// and the generated files in lockstep (and takes any secret an older
+	// cached copy still holds with it).
+	if err := os.RemoveAll(filepath.Join(homeDir, "plugins", "cache", "unbiased-managed")); err != nil {
+		return fmt.Errorf("clearing managed plugin cache: %w", err)
+	}
+	if len(managed) == 0 {
+		return nil
+	}
+	type marketEntry struct {
+		Name   string `json:"name"`
+		Source struct {
+			Source string `json:"source"`
+			Path   string `json:"path"`
+		} `json:"source"`
+		Policy struct {
+			Installation   string `json:"installation"`
+			Authentication string `json:"authentication"`
+		} `json:"policy"`
+	}
+	var entries []marketEntry
+	for _, s := range managed {
+		dir := filepath.Join(root, "plugins", s.Name)
+		if err := os.MkdirAll(filepath.Join(dir, ".codex-plugin"), 0o700); err != nil {
+			return fmt.Errorf("creating managed plugin %s: %w", s.Name, err)
+		}
+		oauthCfg := map[string]any{"client_id": s.OAuthClientID, "callback_port": 45999}
+		proxiedURL, perr := url.Parse(s.URL)
+		if perr != nil {
+			return fmt.Errorf("managed plugin %s: %w", s.Name, perr)
+		}
+		serverCfg := map[string]any{
+			"type":  "http",
+			"url":   fmt.Sprintf("http://127.0.0.1:%d%s", secretProxyPort(s.Name), proxiedURL.EscapedPath()),
+			"oauth": oauthCfg,
+		}
+		if len(s.Scopes) > 0 {
+			serverCfg["scopes"] = s.Scopes
+		}
+		server := serverCfg
+		// Version tracks the content, so even a cache we failed to clear cannot
+		// answer for a plugin whose config has changed.
+		jbForHash, _ := json.Marshal(server)
+		sum := sha256.Sum256(jbForHash)
+		version := fmt.Sprintf("0.0.%d", binary.BigEndian.Uint32(sum[:4])%100000)
+		manifest := map[string]any{"name": s.Name, "version": version}
+		mb, _ := json.MarshalIndent(manifest, "", "  ")
+		if err := os.WriteFile(filepath.Join(dir, ".codex-plugin", "plugin.json"), mb, 0o600); err != nil {
+			return fmt.Errorf("writing plugin.json for %s: %w", s.Name, err)
+		}
+		if len(s.Scopes) > 0 {
+			server["scopes"] = s.Scopes
+		}
+		// No client_secret in the file: codex reads it and then loses it before
+		// the token exchange, so the app-side proxy injects it there instead.
+		// The URL above points at that proxy; MCP traffic passes through it
+		// untouched, only the token endpoint is intercepted.
+		mcp := map[string]any{"mcpServers": map[string]any{s.Name: server}}
+		jb, _ := json.MarshalIndent(mcp, "", "  ")
+		if err := os.WriteFile(filepath.Join(dir, ".mcp.json"), jb, 0o600); err != nil {
+			return fmt.Errorf("writing .mcp.json for %s: %w", s.Name, err)
+		}
+		var e marketEntry
+		e.Name = s.Name
+		e.Source.Source = "local"
+		e.Source.Path = "./plugins/" + s.Name
+		e.Policy.Installation = "AVAILABLE"
+		e.Policy.Authentication = "ON_USE"
+		entries = append(entries, e)
+	}
+	idxDir := filepath.Join(root, ".agents", "plugins")
+	if err := os.MkdirAll(idxDir, 0o700); err != nil {
+		return fmt.Errorf("creating marketplace index dir: %w", err)
+	}
+	idx := map[string]any{"name": "unbiased-managed", "plugins": entries}
+	ib, _ := json.MarshalIndent(idx, "", "  ")
+	if err := os.WriteFile(filepath.Join(idxDir, "marketplace.json"), ib, 0o600); err != nil {
+		return fmt.Errorf("writing marketplace.json: %w", err)
+	}
+	return nil
+}
+
 // validateMCPServers checks a whole set, including cross-server rules.
 func validateMCPServers(servers []MCPServer) error {
 	seen := make(map[string]struct{}, len(servers))
@@ -332,12 +485,26 @@ func renderMCPServers(servers []MCPServer) string {
 		return ""
 	}
 	var b strings.Builder
+	// Secret-bearing servers ride the plugin path (see OAuthClientSecret); the
+	// files themselves are written by MaterializeHome, and these lines make
+	// codex load them. Emitted BEFORE the [mcp_servers] tables so a plugin
+	// line can never land inside a server's sub-table.
+	managed := managedPluginServers(servers)
+	if len(managed) > 0 {
+		fmt.Fprintf(&b, "\n[marketplaces.unbiased-managed]\nsource_type = \"local\"\nsource = %s\n", tomlString("{{HOME}}/managed-plugins"))
+		for _, s := range managed {
+			fmt.Fprintf(&b, "\n[plugins.%s]\nenabled = true\n", tomlString(s.Name+"@unbiased-managed"))
+		}
+	}
 	for _, s := range servers {
 		// Disabled servers are validated like any other — a bad entry should
 		// be reported whether or not it is currently switched on — but they
 		// are not written out, so codex never starts them.
 		if s.Enabled != nil && !*s.Enabled {
 			continue
+		}
+		if s.OAuthClientSecret != "" {
+			continue // rendered as a managed plugin above
 		}
 		fmt.Fprintf(&b, "\n[mcp_servers.%s]\n", s.Name)
 		if s.Command != "" {
