@@ -23,11 +23,14 @@ bin/pareto-app-server: engine.lock scripts/fetch-engine.sh
 	scripts/fetch-engine.sh
 	touch bin/pareto-app-server
 
-bundle: bin/pareto-app-server
+bundle: bin/pareto-app-server LICENSE NOTICE THIRD_PARTY_NOTICES.md third_party/openai-codex/NOTICE
 	rm -rf dist/bundle
-	mkdir -p dist/bundle
+	mkdir -p dist/bundle/licenses/openai-codex
 	go build -o dist/bundle/unbiased-app-engine ./cmd/unbiased-app-engine
 	cp bin/pareto-app-server dist/bundle/
+	cp LICENSE NOTICE THIRD_PARTY_NOTICES.md dist/bundle/
+	cp LICENSE dist/bundle/licenses/openai-codex/LICENSE
+	cp third_party/openai-codex/NOTICE dist/bundle/licenses/openai-codex/NOTICE
 	@echo "bundle ready: dist/bundle/ ($$(du -sh dist/bundle | cut -f1))"
 
 # Live suite: spends a handful of small Pareto turns through the production

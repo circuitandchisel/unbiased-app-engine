@@ -75,9 +75,9 @@ mcp_oauth_callback_port = 45999
 # Note on history: an earlier version of this comment claimed a conversation
 # reached ~419k input tokens and died. That was a misreading of
 # total_token_usage (CUMULATIVE session usage) as live context — the thread's
-# live context was 26,892. Those failures were a gateway-side stream sever,
-# fixed separately in gpu-router#433. The settings below are still right, for
-# the reasons above rather than that anecdote.
+# live context was 26,892. Those failures were a separate gateway-side stream
+# interruption. The settings below are still right for the reasons above
+# rather than that anecdote.
 model_context_window = 131072
 model_auto_compact_token_limit = 96000
 
@@ -93,7 +93,7 @@ multi_agent = false
 
 # Multi-agent v2: the engine spawns sub-agents in-process; their collaboration
 # tools ride a Responses-API namespace, flattened to `collaboration__*`
-# functions and split back by the gateway (gpu-router#414, live). Sub-agents
+# functions and split back by the gateway's namespace adapter. Sub-agents
 # inherit this provider config, so Pareto-only-by-construction extends to
 # every spawn.
 [features.multi_agent_v2]
@@ -115,7 +115,7 @@ hide_spawn_agent_metadata = false
 #
 # codex has always supported these; the gateway is what changed. An MCP
 # server's tools arrive as a `namespace` group, which chat-completions cannot
-# express, so gpu-router#414 flattens each to `<namespace>__<tool>` upstream
+# express, so the gateway flattens each to `<namespace>__<tool>` upstream
 # and splits it back on the way out — the same path multi-agent v2 above has
 # used in production since 2026-08. That is why this is a config change and
 # not a protocol project.

@@ -24,7 +24,7 @@ import (
 //
 //  1. The gateway speaks namespace tools. codex declares an MCP server's tools
 //     as a `namespace` group, and chat-completions has no namespace concept.
-//     gpu-router#414 flattens each inner tool to `<namespace>__<name>` upstream
+//     the gateway flattens each inner tool to `<namespace>__<name>` upstream
 //     and splits it back on the way out. Multi-agent v2 has ridden that exact
 //     path in production since 2026-08 — MCP is the second consumer of a live
 //     mechanism, not a new one.

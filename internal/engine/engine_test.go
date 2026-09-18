@@ -58,7 +58,7 @@ func TestRenderConfigLocksProvider(t *testing.T) {
 		`wire_api = "responses"`,
 		`multi_agent = false`,
 		// Multi-agent v2: namespace tools ride through the gateway
-		// (gpu-router#414). Sub-agents inherit the pinned Pareto provider.
+		// by the gateway. Sub-agents inherit the pinned Pareto provider.
 		`[features.multi_agent_v2]`,
 		`enabled = true`,
 		`max_concurrent_threads_per_session = 5`,
