@@ -67,13 +67,20 @@ event:
 3. `scripts/gen-schema.sh` (requires the matching `codex` CLI) — review the schema diff for breaking protocol changes.
 4. `conformance/run.sh` — all checks green.
 
+## License and redistribution
+
+This project is licensed under Apache-2.0. The desktop release redistributes
+the pinned, unmodified Codex app-server binary. `make bundle` includes this
+repository's license and OpenAI Codex's license and NOTICE alongside that
+binary; see [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
+
 ## Design notes
 
 - **Why wrap a binary instead of forking or linking the Rust crates?** The
   JSON-RPC protocol is the documented, stable boundary; the crate APIs are
   not. Pinning a release binary gives exact reproducibility with zero rebase
-  burden. codex is Apache-2.0 and the engine is downloaded at setup, not
-  redistributed.
+  burden. Codex is Apache-2.0; downloads are checksum-verified and bundled
+  with the notices required for redistribution.
 - **Why regenerate the home every start?** The 2026-08-12 spike against the
   Codex desktop app showed engines/hosts happily rewrite `config.toml`
   underneath you. Reclaiming the file at startup makes the provider config
