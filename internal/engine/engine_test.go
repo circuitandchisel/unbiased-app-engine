@@ -107,13 +107,24 @@ func TestMaterializeHomeRewrites(t *testing.T) {
 }
 
 func TestEnvForcesOurValues(t *testing.T) {
-	parent := []string{"PATH=/usr/bin", "CODEX_HOME=/theirs", "UNBIASED_API_KEY=sk_stale", "TERM=xterm"}
+	parent := []string{"PATH=/usr/bin", "CODEX_HOME=/theirs", "UNBIASED_API_KEY=sk_stale", "UNBIASED_MAX_REQUEST_BODY_BYTES=1", "TERM=xterm"}
 	got := Env(parent, "/ours", "sk_fresh")
 	joined := strings.Join(got, "\n")
 	if strings.Contains(joined, "/theirs") || strings.Contains(joined, "sk_stale") {
 		t.Fatalf("parent values leaked through: %v", got)
 	}
-	if !strings.Contains(joined, "CODEX_HOME=/ours") || !strings.Contains(joined, "UNBIASED_API_KEY=sk_fresh") {
+	if !strings.Contains(joined, "CODEX_HOME=/ours") ||
+		!strings.Contains(joined, "UNBIASED_API_KEY=sk_fresh") ||
+		!strings.Contains(joined, "UNBIASED_MAX_REQUEST_BODY_BYTES=7340032") {
 		t.Fatalf("our values missing: %v", got)
+	}
+	count := 0
+	for _, kv := range got {
+		if strings.HasPrefix(kv, "UNBIASED_MAX_REQUEST_BODY_BYTES=") {
+			count++
+		}
+	}
+	if count != 1 {
+		t.Fatalf("body limit count = %d, want 1: %v", count, got)
 	}
 }

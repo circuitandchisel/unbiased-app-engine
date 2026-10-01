@@ -142,16 +142,22 @@ func MaterializeHome(dir, baseURL string, servers []MCPServer) error {
 }
 
 // Env returns the child environment for the engine: the parent environment
-// with CODEX_HOME and UNBIASED_API_KEY forced to our values. Forcing (not
-// appending) matters — exec uses the last duplicate, but there is no reason
-// to hand the engine two values and hope.
+// with CODEX_HOME, UNBIASED_API_KEY, and the Pareto body limit forced to our
+// values. Forcing (not appending) avoids duplicate child settings.
 func Env(parent []string, homeDir, key string) []string {
-	out := make([]string, 0, len(parent)+2)
+	const maxRequestBodyBytes = "7340032" // 7 MiB, below Pareto's 8 MiB gateway cap.
+	out := make([]string, 0, len(parent)+3)
 	for _, kv := range parent {
-		if strings.HasPrefix(kv, "CODEX_HOME=") || strings.HasPrefix(kv, "UNBIASED_API_KEY=") {
+		if strings.HasPrefix(kv, "CODEX_HOME=") ||
+			strings.HasPrefix(kv, "UNBIASED_API_KEY=") ||
+			strings.HasPrefix(kv, "UNBIASED_MAX_REQUEST_BODY_BYTES=") {
 			continue
 		}
 		out = append(out, kv)
 	}
-	return append(out, "CODEX_HOME="+homeDir, "UNBIASED_API_KEY="+key)
+	return append(out,
+		"CODEX_HOME="+homeDir,
+		"UNBIASED_API_KEY="+key,
+		"UNBIASED_MAX_REQUEST_BODY_BYTES="+maxRequestBodyBytes,
+	)
 }
