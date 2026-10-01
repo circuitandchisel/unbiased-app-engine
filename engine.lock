@@ -1,15 +1,13 @@
-# Pinned codex app-server engine.
+# Pinned Unbiased app-server engine.
 #
-# This file is the single source of truth for which engine build this repo
-# wraps. Every consumer — fetch-engine.sh, gen-schema.sh, conformance — reads
-# the version from here, so bumping the engine is a one-file change that CI
-# can verify end to end (fetch → schema regen → conformance) before it lands.
+# This file is the single source of truth for which forked app-server release
+# this repo wraps. fetch-engine.sh and gen-schema.sh read the version here.
 #
 # Checksums are of the release tarballs, computed from
-# https://github.com/openai/codex/releases/download/rust-v<version>/
-version = 0.147.0
+# https://github.com/circuitandchisel/unbiased-app-server/releases/download/unbiased-app-server-v<version>/
+version = 0.1.1
 
-sha256 codex-app-server-aarch64-apple-darwin.tar.gz = e8d180c107a9285861dd09988bc50557f6aa7f44c83daeec343521072787cf33
-sha256 codex-app-server-x86_64-apple-darwin.tar.gz = 7968232e388a7deddf0648b164b67cd4bd50ff368e71480e3de8e465c6d01a98
-sha256 codex-app-server-aarch64-unknown-linux-musl.tar.gz = 0bb78fa190cdcbc689dc34d34358b054a5c7e81a6d899d97065ea139aeb3ba9c
-sha256 codex-app-server-x86_64-unknown-linux-musl.tar.gz = 2eb81b0aa75dee49b0f64490eb6bda7aff6c6f437cdd77453feac8400f802c09
+sha256 codex-app-server-aarch64-apple-darwin.tar.gz = 85e7d166055ad6ca4b928fdea691e43e220a618f615ab9938f0b2b62c986a09b
+sha256 codex-app-server-x86_64-apple-darwin.tar.gz = e0dbafe61d81c033db3930a3588addb1124e0f257ccd6b1f1db77b8617598607
+sha256 codex-app-server-aarch64-unknown-linux-musl.tar.gz = c0623bd64e219822f00b9abdc68995a3917543a40cca7e0456f6b16e48eb716f
+sha256 codex-app-server-x86_64-unknown-linux-musl.tar.gz = d9f985d7b563b5d3710d700c73fdf6882ba07d78cdd86af3246fba5f437b4b4f

@@ -2,8 +2,8 @@
 
 A drop-in `codex app-server` that is locked to the Unbiased gateway (Pareto).
 
-This repo wraps a **pinned, stock** codex-app-server binary — no forked
-source — behind a small Go supervisor that makes it Pareto-only *by
+This repo wraps a **pinned Unbiased fork** of codex-app-server behind a small
+Go supervisor that makes it Pareto-only *by
 construction*: on every start it regenerates a private `CODEX_HOME`
 (`~/.unbiased/app-engine/home`) from an embedded template, loads the Unbiased
 API key (`UNBIASED_API_KEY`, else `~/.unbiased/credentials.json` from
@@ -52,8 +52,8 @@ re-signed with the app's Developer ID during packaging.
 | `scripts/fetch-engine.sh` | Downloads the pinned release binary, verifies the checksum, installs `bin/pareto-app-server`. |
 | `cmd/unbiased-app-engine` | The supervisor: key resolution → home materialization → exec. |
 | `internal/engine` | The testable pieces (config template, key/env handling). |
-| `scripts/gen-schema.sh` | Regenerates `schema/` from a `codex` CLI that exactly matches the lock. |
-| `schema/` | Generated JSON Schema for the pinned protocol version — typed bindings match the engine by construction. |
+| `scripts/gen-schema.sh` | Regenerates `schema/` from the full fork source at the pinned release tag. |
+| `schema/` | A generated protocol snapshot for client development; it is not used by the runtime. Regenerate after pinning a new release. |
 | `conformance/` | Live protocol tests: stream, multi-turn, interrupt, command-approval round-trip. |
 
 ## Bumping the engine
@@ -64,22 +64,22 @@ event:
 
 1. Edit `version` in `engine.lock`; update the four tarball checksums.
 2. `scripts/fetch-engine.sh`
-3. `scripts/gen-schema.sh` (requires the matching `codex` CLI) — review the schema diff for breaking protocol changes.
+3. `scripts/gen-schema.sh` (requires the matching `unbiased-app-server` source checkout and Rust toolchain) — review the schema diff for breaking protocol changes.
 4. `conformance/run.sh` — all checks green.
 
 ## License and redistribution
 
 This project is licensed under Apache-2.0. The desktop release redistributes
-the pinned, unmodified Codex app-server binary. `make bundle` includes this
+the pinned Unbiased fork of Codex app-server. `make bundle` includes this
 repository's license and OpenAI Codex's license and NOTICE alongside that
 binary; see [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
 
 ## Design notes
 
-- **Why wrap a binary instead of forking or linking the Rust crates?** The
-  JSON-RPC protocol is the documented, stable boundary; the crate APIs are
-  not. Pinning a release binary gives exact reproducibility with zero rebase
-  burden. Codex is Apache-2.0; downloads are checksum-verified and bundled
+- **Why wrap a binary instead of linking the Rust crates?** The JSON-RPC
+  protocol is the documented boundary; the crate APIs are not. The forked
+  engine is released separately, and pinning its binary keeps desktop builds
+  reproducible. Codex is Apache-2.0; downloads are checksum-verified and bundled
   with the notices required for redistribution.
 - **Why regenerate the home every start?** The 2026-08-12 spike against the
   Codex desktop app showed engines/hosts happily rewrite `config.toml`
