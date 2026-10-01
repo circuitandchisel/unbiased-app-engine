@@ -4,7 +4,7 @@
 #   scripts/fetch-engine.sh
 #
 # Reads the version and expected checksum from engine.lock, downloads the
-# release tarball from openai/codex, verifies the SHA-256, and installs the
+# release tarball from circuitandchisel/unbiased-app-server, verifies SHA-256, and installs the
 # binary at bin/pareto-app-server. Refuses to install anything that does not
 # match the lock — an engine we haven't conformance-tested must never run.
 set -euo pipefail
@@ -36,7 +36,7 @@ if [ -z "$expected" ]; then
   echo "error: no checksum for $asset in $LOCK" >&2; exit 1
 fi
 
-url="https://github.com/openai/codex/releases/download/rust-v$VERSION/$asset"
+url="https://github.com/circuitandchisel/unbiased-app-server/releases/download/unbiased-app-server-v$VERSION/$asset"
 tmp="$(mktemp -d)"
 trap 'rm -rf "$tmp"' EXIT
 

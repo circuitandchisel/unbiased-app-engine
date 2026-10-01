@@ -27,3 +27,28 @@ jobs:
 
       - name: Test
         run: make test
+
+  bundle-gate:
+    name: Forked server bundle
+    needs: tests-gate
+    runs-on: macos-15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Setup Go
+        uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version-file: go.mod
+          cache: true
+
+      - name: Build verified bundle
+        run: make bundle
+
+      - name: Check bundled version
+        shell: bash
+        run: |
+          set -euo pipefail
+          version="$(sed -n 's/^version = //p' engine.lock)"
+          test "$(dist/bundle/pareto-app-server --version)" = "codex-app-server $version"
+          test -x dist/bundle/unbiased-app-engine
