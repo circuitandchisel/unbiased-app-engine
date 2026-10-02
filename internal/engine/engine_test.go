@@ -51,7 +51,7 @@ func TestRenderConfigLocksProvider(t *testing.T) {
 		t.Fatal(err)
 	}
 	for _, want := range []string{
-		`model = "pareto"`,
+		`model = "pareto-26.10-preview"`,
 		`model_provider = "unbiased"`,
 		`base_url = "https://gw.example/v1"`,
 		`env_key = "UNBIASED_API_KEY"`,
@@ -93,8 +93,8 @@ func TestMaterializeHomeRewrites(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if !strings.Contains(string(data), `model = "pareto"`) {
-		t.Fatal("restart must reclaim config.toml for pareto")
+	if !strings.Contains(string(data), `model = "pareto-26.10-preview"`) {
+		t.Fatal("restart must reclaim config.toml for pareto preview")
 	}
 
 	info, err := os.Stat(path)
