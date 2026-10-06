@@ -5,9 +5,9 @@
 #
 # Checksums are of the release tarballs, computed from
 # https://github.com/circuitandchisel/unbiased-app-server/releases/download/unbiased-app-server-v<version>/
-version = 0.1.2
+version = 0.1.3
 
-sha256 codex-app-server-aarch64-apple-darwin.tar.gz = 059f3828c0a17048f68ca872f56e7614d435c20f2adc27aefb33001bb2de94ba
-sha256 codex-app-server-x86_64-apple-darwin.tar.gz = 41da149426efb0606c715b1a6a7045a8e84572107183eff45f906209ad0e0963
-sha256 codex-app-server-aarch64-unknown-linux-musl.tar.gz = 59639e1e6e0196b279c046f3abce76d4271cd3eff8c9a8ba5c93b3b33ffb970a
-sha256 codex-app-server-x86_64-unknown-linux-musl.tar.gz = 29e4a6bb6e69966f4f78c57d4132dcab8e0ce7975a8cf7ae071418f0edd219e0
+sha256 codex-app-server-aarch64-apple-darwin.tar.gz = a28c6281c0053c3e46880bbf1879af0ff333caa2f67a194d28a8fb0a4433445d
+sha256 codex-app-server-x86_64-apple-darwin.tar.gz = fbdf5dc86dfe4685672ca05b087a637ddf9c625bf59e31d7960e3c4316bbeb08
+sha256 codex-app-server-aarch64-unknown-linux-musl.tar.gz = dface265b654d866554b9fffeeb7370c367b1fc9d7ecf442375595563d53cf14
+sha256 codex-app-server-x86_64-unknown-linux-musl.tar.gz = adb6a0498ce55bde4621182e25951927f04d2e580ecfb8306dc6daf131df99e2
