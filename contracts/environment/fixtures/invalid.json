@@ -1,0 +1,621 @@
+[
+  {
+    "name": "unsupported-version",
+    "manifest": {
+      "schemaVersion": 2,
+      "owner": {
+        "organizationId": "org-1",
+        "memberId": "user-1"
+      },
+      "scope": {
+        "kind": "conversation",
+        "projectId": "project-1",
+        "conversationId": "thread-1"
+      },
+      "revision": 1,
+      "skills": [
+        {
+          "id": "skill-1",
+          "name": "review",
+          "origin": {
+            "kind": "project",
+            "projectId": "project-1"
+          },
+          "enabled": true,
+          "version": "1",
+          "digest": "60390e262951c11c87fb37a0bba58ec02f73889fe444964faf0037e3adce528a",
+          "path": "skills/skill-1/SKILL.md"
+        }
+      ],
+      "connectors": [
+        {
+          "id": "connector-1",
+          "name": "docs",
+          "endpoint": "https://docs.example.com/mcp",
+          "enabled": false,
+          "credentialRef": "credential-1",
+          "origin": {
+            "kind": "global"
+          }
+        }
+      ],
+      "repositories": [
+        {
+          "sourceId": "source-1",
+          "repositoryId": "repo-1",
+          "checkoutId": "checkout-1",
+          "kind": "git",
+          "displayName": "api",
+          "access": "read",
+          "branch": "main",
+          "commit": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "remote": "https://example.com/org/api.git",
+          "worktreeName": "feature"
+        }
+      ]
+    }
+  },
+  {
+    "name": "secret-field",
+    "manifest": {
+      "schemaVersion": 1,
+      "owner": {
+        "organizationId": "org-1",
+        "memberId": "user-1"
+      },
+      "scope": {
+        "kind": "conversation",
+        "projectId": "project-1",
+        "conversationId": "thread-1"
+      },
+      "revision": 1,
+      "skills": [
+        {
+          "id": "skill-1",
+          "name": "review",
+          "origin": {
+            "kind": "project",
+            "projectId": "project-1"
+          },
+          "enabled": true,
+          "version": "1",
+          "digest": "60390e262951c11c87fb37a0bba58ec02f73889fe444964faf0037e3adce528a",
+          "path": "skills/skill-1/SKILL.md"
+        }
+      ],
+      "connectors": [
+        {
+          "id": "connector-1",
+          "name": "docs",
+          "endpoint": "https://docs.example.com/mcp",
+          "enabled": false,
+          "credentialRef": "credential-1",
+          "env": {
+            "TOKEN": "secret"
+          },
+          "origin": {
+            "kind": "global"
+          }
+        }
+      ],
+      "repositories": [
+        {
+          "sourceId": "source-1",
+          "repositoryId": "repo-1",
+          "checkoutId": "checkout-1",
+          "kind": "git",
+          "displayName": "api",
+          "access": "read",
+          "branch": "main",
+          "commit": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "remote": "https://example.com/org/api.git",
+          "worktreeName": "feature"
+        }
+      ]
+    }
+  },
+  {
+    "name": "path-traversal",
+    "manifest": {
+      "schemaVersion": 1,
+      "owner": {
+        "organizationId": "org-1",
+        "memberId": "user-1"
+      },
+      "scope": {
+        "kind": "conversation",
+        "projectId": "project-1",
+        "conversationId": "thread-1"
+      },
+      "revision": 1,
+      "skills": [
+        {
+          "id": "skill-1",
+          "name": "review",
+          "origin": {
+            "kind": "project",
+            "projectId": "project-1"
+          },
+          "enabled": true,
+          "version": "1",
+          "digest": "60390e262951c11c87fb37a0bba58ec02f73889fe444964faf0037e3adce528a",
+          "path": "../secret"
+        }
+      ],
+      "connectors": [
+        {
+          "id": "connector-1",
+          "name": "docs",
+          "endpoint": "https://docs.example.com/mcp",
+          "enabled": false,
+          "credentialRef": "credential-1",
+          "origin": {
+            "kind": "global"
+          }
+        }
+      ],
+      "repositories": [
+        {
+          "sourceId": "source-1",
+          "repositoryId": "repo-1",
+          "checkoutId": "checkout-1",
+          "kind": "git",
+          "displayName": "api",
+          "access": "read",
+          "branch": "main",
+          "commit": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "remote": "https://example.com/org/api.git",
+          "worktreeName": "feature"
+        }
+      ]
+    }
+  },
+  {
+    "name": "foreign-project",
+    "manifest": {
+      "schemaVersion": 1,
+      "owner": {
+        "organizationId": "org-1",
+        "memberId": "user-1"
+      },
+      "scope": {
+        "kind": "conversation",
+        "projectId": "project-1",
+        "conversationId": "thread-1"
+      },
+      "revision": 1,
+      "skills": [
+        {
+          "id": "skill-1",
+          "name": "review",
+          "origin": {
+            "kind": "project",
+            "projectId": "other"
+          },
+          "enabled": true,
+          "version": "1",
+          "digest": "60390e262951c11c87fb37a0bba58ec02f73889fe444964faf0037e3adce528a",
+          "path": "skills/skill-1/SKILL.md"
+        }
+      ],
+      "connectors": [
+        {
+          "id": "connector-1",
+          "name": "docs",
+          "endpoint": "https://docs.example.com/mcp",
+          "enabled": false,
+          "credentialRef": "credential-1",
+          "origin": {
+            "kind": "global"
+          }
+        }
+      ],
+      "repositories": [
+        {
+          "sourceId": "source-1",
+          "repositoryId": "repo-1",
+          "checkoutId": "checkout-1",
+          "kind": "git",
+          "displayName": "api",
+          "access": "read",
+          "branch": "main",
+          "commit": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "remote": "https://example.com/org/api.git",
+          "worktreeName": "feature"
+        }
+      ]
+    }
+  },
+  {
+    "name": "credential-url",
+    "manifest": {
+      "schemaVersion": 1,
+      "owner": {
+        "organizationId": "org-1",
+        "memberId": "user-1"
+      },
+      "scope": {
+        "kind": "conversation",
+        "projectId": "project-1",
+        "conversationId": "thread-1"
+      },
+      "revision": 1,
+      "skills": [
+        {
+          "id": "skill-1",
+          "name": "review",
+          "origin": {
+            "kind": "project",
+            "projectId": "project-1"
+          },
+          "enabled": true,
+          "version": "1",
+          "digest": "60390e262951c11c87fb37a0bba58ec02f73889fe444964faf0037e3adce528a",
+          "path": "skills/skill-1/SKILL.md"
+        }
+      ],
+      "connectors": [
+        {
+          "id": "connector-1",
+          "name": "docs",
+          "endpoint": "https://user:pass@example.com/mcp",
+          "enabled": false,
+          "credentialRef": "credential-1",
+          "origin": {
+            "kind": "global"
+          }
+        }
+      ],
+      "repositories": [
+        {
+          "sourceId": "source-1",
+          "repositoryId": "repo-1",
+          "checkoutId": "checkout-1",
+          "kind": "git",
+          "displayName": "api",
+          "access": "read",
+          "branch": "main",
+          "commit": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "remote": "https://example.com/org/api.git",
+          "worktreeName": "feature"
+        }
+      ]
+    }
+  },
+  {
+    "name": "normalized-path",
+    "manifest": {
+      "schemaVersion": 1,
+      "owner": {
+        "organizationId": "org-1",
+        "memberId": "user-1"
+      },
+      "scope": {
+        "kind": "conversation",
+        "projectId": "project-1",
+        "conversationId": "thread-1"
+      },
+      "revision": 1,
+      "skills": [
+        {
+          "id": "skill-1",
+          "name": "review",
+          "origin": {
+            "kind": "project",
+            "projectId": "project-1"
+          },
+          "enabled": true,
+          "version": "1",
+          "digest": "60390e262951c11c87fb37a0bba58ec02f73889fe444964faf0037e3adce528a",
+          "path": "skills/skill-1/SKILL.md"
+        }
+      ],
+      "connectors": [
+        {
+          "id": "connector-1",
+          "name": "docs",
+          "endpoint": "https://example.com/private-token/../mcp",
+          "enabled": false,
+          "credentialRef": "credential-1",
+          "origin": {
+            "kind": "global"
+          }
+        }
+      ],
+      "repositories": [
+        {
+          "sourceId": "source-1",
+          "repositoryId": "repo-1",
+          "checkoutId": "checkout-1",
+          "kind": "git",
+          "displayName": "api",
+          "access": "read",
+          "branch": "main",
+          "commit": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "remote": "https://example.com/org/api.git",
+          "worktreeName": "feature"
+        }
+      ]
+    }
+  },
+  {
+    "name": "default-port",
+    "manifest": {
+      "schemaVersion": 1,
+      "owner": {
+        "organizationId": "org-1",
+        "memberId": "user-1"
+      },
+      "scope": {
+        "kind": "conversation",
+        "projectId": "project-1",
+        "conversationId": "thread-1"
+      },
+      "revision": 1,
+      "skills": [
+        {
+          "id": "skill-1",
+          "name": "review",
+          "origin": {
+            "kind": "project",
+            "projectId": "project-1"
+          },
+          "enabled": true,
+          "version": "1",
+          "digest": "60390e262951c11c87fb37a0bba58ec02f73889fe444964faf0037e3adce528a",
+          "path": "skills/skill-1/SKILL.md"
+        }
+      ],
+      "connectors": [
+        {
+          "id": "connector-1",
+          "name": "docs",
+          "endpoint": "https://example.com:443/mcp",
+          "enabled": false,
+          "credentialRef": "credential-1",
+          "origin": {
+            "kind": "global"
+          }
+        }
+      ],
+      "repositories": [
+        {
+          "sourceId": "source-1",
+          "repositoryId": "repo-1",
+          "checkoutId": "checkout-1",
+          "kind": "git",
+          "displayName": "api",
+          "access": "read",
+          "branch": "main",
+          "commit": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "remote": "https://example.com/org/api.git",
+          "worktreeName": "feature"
+        }
+      ]
+    }
+  },
+  {
+    "name": "empty-userinfo",
+    "manifest": {
+      "schemaVersion": 1,
+      "owner": {
+        "organizationId": "org-1",
+        "memberId": "user-1"
+      },
+      "scope": {
+        "kind": "conversation",
+        "projectId": "project-1",
+        "conversationId": "thread-1"
+      },
+      "revision": 1,
+      "skills": [
+        {
+          "id": "skill-1",
+          "name": "review",
+          "origin": {
+            "kind": "project",
+            "projectId": "project-1"
+          },
+          "enabled": true,
+          "version": "1",
+          "digest": "60390e262951c11c87fb37a0bba58ec02f73889fe444964faf0037e3adce528a",
+          "path": "skills/skill-1/SKILL.md"
+        }
+      ],
+      "connectors": [
+        {
+          "id": "connector-1",
+          "name": "docs",
+          "endpoint": "https://@example.com/mcp",
+          "enabled": false,
+          "credentialRef": "credential-1",
+          "origin": {
+            "kind": "global"
+          }
+        }
+      ],
+      "repositories": [
+        {
+          "sourceId": "source-1",
+          "repositoryId": "repo-1",
+          "checkoutId": "checkout-1",
+          "kind": "git",
+          "displayName": "api",
+          "access": "read",
+          "branch": "main",
+          "commit": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "remote": "https://example.com/org/api.git",
+          "worktreeName": "feature"
+        }
+      ]
+    }
+  },
+  {
+    "name": "uppercase-localhost",
+    "manifest": {
+      "schemaVersion": 1,
+      "owner": {
+        "organizationId": "org-1",
+        "memberId": "user-1"
+      },
+      "scope": {
+        "kind": "conversation",
+        "projectId": "project-1",
+        "conversationId": "thread-1"
+      },
+      "revision": 1,
+      "skills": [
+        {
+          "id": "skill-1",
+          "name": "review",
+          "origin": {
+            "kind": "project",
+            "projectId": "project-1"
+          },
+          "enabled": true,
+          "version": "1",
+          "digest": "60390e262951c11c87fb37a0bba58ec02f73889fe444964faf0037e3adce528a",
+          "path": "skills/skill-1/SKILL.md"
+        }
+      ],
+      "connectors": [
+        {
+          "id": "connector-1",
+          "name": "docs",
+          "endpoint": "https://LOCALHOST/mcp",
+          "enabled": false,
+          "credentialRef": "credential-1",
+          "origin": {
+            "kind": "global"
+          }
+        }
+      ],
+      "repositories": [
+        {
+          "sourceId": "source-1",
+          "repositoryId": "repo-1",
+          "checkoutId": "checkout-1",
+          "kind": "git",
+          "displayName": "api",
+          "access": "read",
+          "branch": "main",
+          "commit": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "remote": "https://example.com/org/api.git",
+          "worktreeName": "feature"
+        }
+      ]
+    }
+  },
+  {
+    "name": "trailing-localhost-dot",
+    "manifest": {
+      "schemaVersion": 1,
+      "owner": {
+        "organizationId": "org-1",
+        "memberId": "user-1"
+      },
+      "scope": {
+        "kind": "conversation",
+        "projectId": "project-1",
+        "conversationId": "thread-1"
+      },
+      "revision": 1,
+      "skills": [
+        {
+          "id": "skill-1",
+          "name": "review",
+          "origin": {
+            "kind": "project",
+            "projectId": "project-1"
+          },
+          "enabled": true,
+          "version": "1",
+          "digest": "60390e262951c11c87fb37a0bba58ec02f73889fe444964faf0037e3adce528a",
+          "path": "skills/skill-1/SKILL.md"
+        }
+      ],
+      "connectors": [
+        {
+          "id": "connector-1",
+          "name": "docs",
+          "endpoint": "https://localhost./mcp",
+          "enabled": false,
+          "credentialRef": "credential-1",
+          "origin": {
+            "kind": "global"
+          }
+        }
+      ],
+      "repositories": [
+        {
+          "sourceId": "source-1",
+          "repositoryId": "repo-1",
+          "checkoutId": "checkout-1",
+          "kind": "git",
+          "displayName": "api",
+          "access": "read",
+          "branch": "main",
+          "commit": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "remote": "https://example.com/org/api.git",
+          "worktreeName": "feature"
+        }
+      ]
+    }
+  },
+  {
+    "name": "empty-query",
+    "manifest": {
+      "schemaVersion": 1,
+      "owner": {
+        "organizationId": "org-1",
+        "memberId": "user-1"
+      },
+      "scope": {
+        "kind": "conversation",
+        "projectId": "project-1",
+        "conversationId": "thread-1"
+      },
+      "revision": 1,
+      "skills": [
+        {
+          "id": "skill-1",
+          "name": "review",
+          "origin": {
+            "kind": "project",
+            "projectId": "project-1"
+          },
+          "enabled": true,
+          "version": "1",
+          "digest": "60390e262951c11c87fb37a0bba58ec02f73889fe444964faf0037e3adce528a",
+          "path": "skills/skill-1/SKILL.md"
+        }
+      ],
+      "connectors": [
+        {
+          "id": "connector-1",
+          "name": "docs",
+          "endpoint": "https://example.com/mcp?",
+          "enabled": false,
+          "credentialRef": "credential-1",
+          "origin": {
+            "kind": "global"
+          }
+        }
+      ],
+      "repositories": [
+        {
+          "sourceId": "source-1",
+          "repositoryId": "repo-1",
+          "checkoutId": "checkout-1",
+          "kind": "git",
+          "displayName": "api",
+          "access": "read",
+          "branch": "main",
+          "commit": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "remote": "https://example.com/org/api.git",
+          "worktreeName": "feature"
+        }
+      ]
+    }
+  }
+]
