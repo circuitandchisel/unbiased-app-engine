@@ -92,3 +92,22 @@ binary; see [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
   request — nothing needs stripping at the gateway. The config also pins
   `multi_agent = false` and `web_search = "disabled"` to match what the
   gateway/Pareto supports today.
+
+## Explicit portable environments
+
+The optional `--environment-manifest /absolute/manifest.json --runtime-paths
+/absolute/paths.json` startup path validates a portable v1 environment before
+materializing a new runtime home. It requires an explicit `UNBIASED_API_KEY`,
+uses an allowlisted environment, and never falls back to local credentials/MCP
+configuration. Existing startup without these flags is unchanged.
+
+Only global bootstrap activation is supported: project/conversation activation
+is rejected until a verified per-thread configuration adapter exists. Connector
+definitions remain disabled until explicitly selected for a conversation;
+opaque credential references have no resolver. This wrapper is not added to the
+cloud deployment.
+
+See [the contract notes](contracts/environment/DESKTOP-INTEGRATION.md),
+[Relay requirements](contracts/environment/RELAY-INTEGRATION.md), and shared
+[fixtures](contracts/environment/fixtures). No cloud continuation is deployed by
+these interfaces.
