@@ -1,7 +1,7 @@
 // unbiased-app-engine: a drop-in `codex app-server` that is locked to the
 // Unbiased gateway (Pareto).
 //
-// It materializes a private CODEX_HOME, loads the Unbiased API key, and execs
+// It materializes a private CODEX_HOME, configures Unbiased credentials, and execs
 // the pinned engine binary with stdio passed straight through — so any client
 // that can speak the codex app-server JSON-RPC protocol can spawn this binary
 // instead of codex and inherit login, model, and gateway policy for free.
@@ -36,6 +36,20 @@ func main() {
 }
 
 func run() error {
+	if len(os.Args) > 1 && os.Args[1] == "auth-token" {
+		args := flag.NewFlagSet("auth-token", flag.ContinueOnError)
+		args.SetOutput(io.Discard)
+		path := args.String("credentials-file", "", "sign-in credential file")
+		if err := args.Parse(os.Args[2:]); err != nil || *path == "" || args.NArg() != 0 {
+			return fmt.Errorf("auth-token requires --credentials-file")
+		}
+		token, err := engine.ResolveOAuthToken(*path)
+		if err != nil {
+			return err
+		}
+		_, err = fmt.Fprintln(os.Stdout, token)
+		return err
+	}
 	userHome, homeErr := os.UserHomeDir()
 
 	var (
@@ -44,10 +58,42 @@ func run() error {
 		baseURL      = flag.String("base-url", envOr("UNBIASED_BASE_URL", engine.DefaultBaseURL), "Unbiased gateway base URL")
 		manifestFile = flag.String("environment-manifest", "", "explicit portable environment manifest (no local config fallback)")
 		mappingsFile = flag.String("runtime-paths", "", "explicit runtime-local path mappings")
+		oauthFile    = flag.String("oauth-credentials", "", "explicit Unbiased sign-in credential file (required for OAuth in portable mode)")
 		mcpConfig    = flag.String("mcp-config", engine.DefaultMCPConfigPath(userHome), "JSON file of user-added MCP servers (missing is fine)")
 	)
 	flag.Parse()
 
+	key := strings.TrimSpace(os.Getenv("UNBIASED_API_KEY"))
+	portable := *manifestFile != "" || *mappingsFile != ""
+	if key == "" {
+		if *oauthFile == "" {
+			if portable {
+				return fmt.Errorf("explicit environment needs UNBIASED_API_KEY or --oauth-credentials; local credential fallback is disabled")
+			}
+			if homeErr != nil {
+				return fmt.Errorf("resolving home directory: %w", homeErr)
+			}
+			*oauthFile = engine.DefaultCredentialsPath(userHome)
+		}
+		path, err := filepath.Abs(*oauthFile)
+		if err != nil {
+			return err
+		}
+		*oauthFile = path
+		if _, err := engine.ResolveOAuthToken(path); err != nil {
+			return err
+		}
+	}
+	self, err := os.Executable()
+	if err != nil {
+		return err
+	}
+	materialize := func(home, baseURL string, servers []engine.MCPServer) error {
+		if key != "" {
+			return engine.MaterializeHome(home, baseURL, servers)
+		}
+		return engine.MaterializeOAuthHome(home, baseURL, servers, self, *oauthFile)
+	}
 	bin, err := resolveEngineBin(*engineBin)
 	if err != nil {
 		return err
@@ -60,10 +106,6 @@ func run() error {
 		// No local credentials, MCP file, developer HOME or arbitrary engine arguments.
 		if len(flag.Args()) != 0 {
 			return fmt.Errorf("engine argument overrides are unsupported in explicit mode")
-		}
-		key := os.Getenv("UNBIASED_API_KEY")
-		if key == "" {
-			return fmt.Errorf("explicit environment needs UNBIASED_API_KEY; local credential fallback is disabled")
 		}
 		data, err := boundedFile(*manifestFile, environment.MaxManifestBytes)
 		if err != nil {
@@ -104,7 +146,7 @@ func run() error {
 			return err
 		}
 		if err := prepared.WriteGenerated(func(stage string) error {
-			if err := engine.MaterializeHome(stage, engine.DefaultBaseURL, servers); err != nil {
+			if err := materialize(stage, engine.DefaultBaseURL, servers); err != nil {
 				return err
 			}
 			// Definitions are available but never automatically enabled for a conversation.
@@ -132,10 +174,6 @@ func run() error {
 	if homeErr != nil {
 		return fmt.Errorf("resolving home directory: %w", homeErr)
 	}
-	key, err := engine.ResolveKey(os.Getenv, engine.DefaultCredentialsPath(userHome))
-	if err != nil {
-		return err
-	}
 
 	// MCP servers: the compiled-in set, plus whatever the desktop app has
 	// written to the user's config. Both go through the same validation before
@@ -149,7 +187,7 @@ func run() error {
 	if err != nil {
 		return err
 	}
-	if err := engine.MaterializeHome(*homeDir, *baseURL, mcpServers); err != nil {
+	if err := materialize(*homeDir, *baseURL, mcpServers); err != nil {
 		return err
 	}
 

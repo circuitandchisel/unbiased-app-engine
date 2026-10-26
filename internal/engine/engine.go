@@ -3,8 +3,8 @@
 //
 // The design invariant: config.toml is a directory this package wrote moments
 // ago. It never reads ~/.codex, never inherits a user's provider config, and
-// receives exactly one credential — the Unbiased API key — via the
-// environment. Clients that spawn us get a stock app-server speaking the
+// uses an explicit Unbiased API key or a command-backed sign-in credential.
+// Sign-in credentials are never exported into the engine environment. Clients that spawn us get a stock app-server speaking the
 // documented JSON-RPC protocol on stdio, already aimed at Pareto.
 //
 // The invariant covers config, NOT the whole home. Two subtrees are the
@@ -100,12 +100,19 @@ func resolveHome(contents, dir string) string {
 // whatever an engine or a previous run left behind, the provider config is
 // ours again before the engine boots.
 func MaterializeHome(dir, baseURL string, servers []MCPServer) error {
+	return materializeHome(dir, baseURL, servers, "")
+}
+
+func materializeHome(dir, baseURL string, servers []MCPServer, auth string) error {
 	// Render before touching the filesystem: an invalid MCP server must not
 	// leave a half-updated home behind, and the existing config.toml is still
 	// the last good one until the rename below.
 	contents, err := RenderConfig(baseURL, servers)
 	if err != nil {
 		return err
+	}
+	if auth != "" {
+		contents = strings.Replace(contents, `env_key = "UNBIASED_API_KEY"`, auth, 1)
 	}
 	contents = resolveHome(contents, dir)
 	if err := os.MkdirAll(dir, 0o700); err != nil {
@@ -142,8 +149,8 @@ func MaterializeHome(dir, baseURL string, servers []MCPServer) error {
 }
 
 // Env returns the child environment for the engine: the parent environment
-// with CODEX_HOME, UNBIASED_API_KEY, and the Pareto body limit forced to our
-// values. Forcing (not appending) avoids duplicate child settings.
+// with CODEX_HOME and the Pareto body limit forced to our values. An explicit
+// API key is included only in API-key mode. Forcing (not appending) avoids duplicate child settings.
 func Env(parent []string, homeDir, key string) []string {
 	const maxRequestBodyBytes = "7340032" // 7 MiB, below Pareto's 8 MiB gateway cap.
 	out := make([]string, 0, len(parent)+3)
@@ -155,9 +162,9 @@ func Env(parent []string, homeDir, key string) []string {
 		}
 		out = append(out, kv)
 	}
-	return append(out,
-		"CODEX_HOME="+homeDir,
-		"UNBIASED_API_KEY="+key,
-		"UNBIASED_MAX_REQUEST_BODY_BYTES="+maxRequestBodyBytes,
-	)
+	out = append(out, "CODEX_HOME="+homeDir, "UNBIASED_MAX_REQUEST_BODY_BYTES="+maxRequestBodyBytes)
+	if key != "" {
+		out = append(out, "UNBIASED_API_KEY="+key)
+	}
+	return out
 }

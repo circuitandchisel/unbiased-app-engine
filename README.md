@@ -6,8 +6,8 @@ This repo wraps a **pinned Unbiased fork** of codex-app-server behind a small
 Go supervisor that makes it Pareto-only *by
 construction*: on every start it regenerates a private `CODEX_HOME`
 (`~/.unbiased/app-engine/home`) from an embedded template, loads the Unbiased
-API key (`UNBIASED_API_KEY`, else `~/.unbiased/credentials.json` from
-`unbiased login`), and execs the engine with stdio passed through. It never
+credential (an explicit `UNBIASED_API_KEY`, else the sign-in token in
+`~/.unbiased/credentials.json`), and execs the engine with stdio passed through. It never
 reads `~/.codex`, so no user config can point it anywhere but the gateway.
 
 Any client that speaks the [codex app-server JSON-RPC protocol][protocol] can
@@ -29,6 +29,29 @@ Smoke it end to end (live Pareto turns; needs `unbiased login` first):
 ```bash
 make conformance
 ```
+
+## Sign-in credentials
+
+An explicit, nonempty `UNBIASED_API_KEY` keeps the existing API-key provider
+configuration. Otherwise the wrapper uses the existing platform sign-in file
+without exporting its token as `UNBIASED_API_KEY`. Both the legacy desktop
+`{"apiKey":"..."}` and explicit `{"accessToken":"..."}` formats are supported.
+The provider asks the wrapper's `auth-token` command for the current credential;
+its cache refreshes after one second or through the existing 401 recovery path.
+Replacing the file therefore does not require an engine restart. This does not
+mint or refresh platform tokens; the signed-in host owns their lifecycle.
+
+Use `--oauth-credentials /absolute/path/to/credentials.json` to select a different
+file. Portable mode requires this flag when no explicit API key is supplied and
+never falls back to a developer's local sign-in. Mount that file outside the
+new engine home and update it atomically when rotating credentials. The token
+is not written into generated TOML or passed in process arguments/environment.
+The `auth-token --credentials-file PATH` subcommand writes the bearer token to
+stdout for the provider; do not pipe it into logs.
+
+Model calls use the app-server's existing primary bearer provider. OAuth-authenticated
+Jev compaction additionally requires the companion app-server change that resolves
+its credential through that same provider rather than reading the API-key environment.
 
 ## Bundling for unbiased-app
 

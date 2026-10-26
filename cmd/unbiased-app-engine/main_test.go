@@ -60,9 +60,19 @@ func TestExplicitStartupAndDefaultLocalCompatibility(t *testing.T) {
 	if err != nil {
 		t.Fatal(local, err)
 	}
-	if !strings.Contains(local, "UNBIASED_API_KEY=local-file-key") || !strings.Contains(local, "AWS_SECRET_ACCESS_KEY=fake-parent-secret") {
+	if strings.Contains(local, "UNBIASED_API_KEY=") || !strings.Contains(local, "AWS_SECRET_ACCESS_KEY=fake-parent-secret") {
 		t.Fatal("default local startup changed", local)
 	}
+	localConfig, err := os.ReadFile(filepath.Join(home, ".unbiased", "app-engine", "home", "config.toml"))
+	if err != nil || !strings.Contains(string(localConfig), "auth-token") || strings.Contains(string(localConfig), "local-file-key") {
+		t.Fatal("local sign-in was not configured without an API-key environment")
+	}
+
+	override, err := invoke([]string{"--engine", fake, "--oauth-credentials", filepath.Join(root, "missing-sign-in.json")}, "explicit-local-key")
+	if err != nil || !strings.Contains(override, "UNBIASED_API_KEY=explicit-local-key") {
+		t.Fatal("explicit API key did not take precedence over sign-in", err)
+	}
+
 	runtime := filepath.Join(root, "runtime")
 	if err = os.MkdirAll(filepath.Join(runtime, "artifacts"), 0700); err != nil {
 		t.Fatal(err)
@@ -101,4 +111,46 @@ func TestExplicitStartupAndDefaultLocalCompatibility(t *testing.T) {
 		t.Fatal("connector availability enabled tools or unresolved credentials", string(config))
 	}
 
+	// Explicit OAuth reads only the caller-selected file, even with no HOME.
+	oauthFile := filepath.Join(root, "runtime-sign-in.json")
+	if err := os.WriteFile(oauthFile, []byte(`{"accessToken":"runtime-user-token"}`), 0600); err != nil {
+		t.Fatal(err)
+	}
+	mapping, _ = json.Marshal(map[string]any{"runtimeRoot": runtime, "artifactRoot": filepath.Join(runtime, "artifacts"), "engineHome": filepath.Join(runtime, "oauth-engine"), "repositories": map[string]string{}})
+	if err := os.WriteFile(paths, mapping, 0600); err != nil {
+		t.Fatal(err)
+	}
+	output, err = invoke(append(args, "--oauth-credentials", oauthFile), "")
+	if err != nil {
+		t.Fatal(output, err)
+	}
+	if strings.Contains(output, "UNBIASED_API_KEY=") || strings.Contains(output, "runtime-user-token") || strings.Contains(output, "fake-parent-secret") {
+		t.Fatal("OAuth startup leaked credentials or parent environment")
+	}
+	config, err = os.ReadFile(filepath.Join(runtime, "oauth-engine", "config.toml"))
+	if err != nil || !strings.Contains(string(config), oauthFile) || !strings.Contains(string(config), "auth-token") {
+		t.Fatal("explicit OAuth was not configured")
+	}
+}
+
+func TestAuthTokenCommandRereadsSignInCredential(t *testing.T) {
+	root := t.TempDir()
+	binary := filepath.Join(root, "wrapper")
+	build := exec.Command("go", "build", "-o", binary, ".")
+	if output, err := build.CombinedOutput(); err != nil {
+		t.Fatal(string(output), err)
+	}
+	path := filepath.Join(root, "credentials.json")
+	for _, token := range []string{"first-user-token", "rotated-user-token"} {
+		data, _ := json.Marshal(map[string]string{"accessToken": token})
+		if err := os.WriteFile(path, data, 0600); err != nil {
+			t.Fatal(err)
+		}
+		cmd := exec.Command(binary, "auth-token", "--credentials-file", path)
+		cmd.Env = []string{"PATH=/usr/bin:/bin"}
+		output, err := cmd.CombinedOutput()
+		if err != nil || string(output) != token+"\n" {
+			t.Fatal("auth-token did not return the current credential")
+		}
+	}
 }

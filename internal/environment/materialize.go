@@ -173,5 +173,9 @@ func (p Prepared) WriteGenerated(generate func(stage string) error) error {
 
 // Explicit mode is an allowlist, independent of the developer's parent environment.
 func ChildEnv(home, key string) []string {
-	return []string{"HOME=" + filepath.Dir(home), "CODEX_HOME=" + home, "PATH=/usr/bin:/bin", "LANG=C.UTF-8", "UNBIASED_API_KEY=" + key, "UNBIASED_MAX_REQUEST_BODY_BYTES=7340032"}
+	env := []string{"HOME=" + filepath.Dir(home), "CODEX_HOME=" + home, "PATH=/usr/bin:/bin", "LANG=C.UTF-8", "UNBIASED_MAX_REQUEST_BODY_BYTES=7340032"}
+	if key != "" {
+		env = append(env, "UNBIASED_API_KEY="+key)
+	}
+	return env
 }
