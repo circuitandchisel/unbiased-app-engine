@@ -107,6 +107,18 @@
         }
       ]
     },
+    "ConfigurationReasoning": {
+      "description": "Reasoning settings interpreted by the backend for the routed model.",
+      "properties": {
+        "effort": {
+          "$ref": "#/definitions/ReasoningEffort"
+        }
+      },
+      "required": [
+        "effort"
+      ],
+      "type": "object"
+    },
     "ContentItem": {
       "oneOf": [
         {
@@ -130,6 +142,32 @@
           "type": "object"
         },
         {
+          "anyOf": [
+            {
+              "properties": {
+                "image_url": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "image_url"
+              ],
+              "title": "ImageUrlContentItem",
+              "type": "object"
+            },
+            {
+              "properties": {
+                "file_id": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "file_id"
+              ],
+              "title": "FileIdContentItem",
+              "type": "object"
+            }
+          ],
           "properties": {
             "detail": {
               "anyOf": [
@@ -141,9 +179,6 @@
                 }
               ]
             },
-            "image_url": {
-              "type": "string"
-            },
             "type": {
               "enum": [
                 "input_image"
@@ -153,7 +188,6 @@
             }
           },
           "required": [
-            "image_url",
             "type"
           ],
           "title": "InputImageContentItem",
@@ -201,6 +235,103 @@
         }
       ]
     },
+    "DynamicToolNamespaceTool": {
+      "oneOf": [
+        {
+          "properties": {
+            "deferLoading": {
+              "type": "boolean"
+            },
+            "description": {
+              "type": "string"
+            },
+            "inputSchema": true,
+            "name": {
+              "type": "string"
+            },
+            "type": {
+              "enum": [
+                "function"
+              ],
+              "title": "FunctionDynamicToolNamespaceToolType",
+              "type": "string"
+            }
+          },
+          "required": [
+            "description",
+            "inputSchema",
+            "name",
+            "type"
+          ],
+          "title": "FunctionDynamicToolNamespaceTool",
+          "type": "object"
+        }
+      ]
+    },
+    "DynamicToolSpec": {
+      "oneOf": [
+        {
+          "properties": {
+            "deferLoading": {
+              "type": "boolean"
+            },
+            "description": {
+              "type": "string"
+            },
+            "inputSchema": true,
+            "name": {
+              "type": "string"
+            },
+            "type": {
+              "enum": [
+                "function"
+              ],
+              "title": "FunctionDynamicToolSpecType",
+              "type": "string"
+            }
+          },
+          "required": [
+            "description",
+            "inputSchema",
+            "name",
+            "type"
+          ],
+          "title": "FunctionDynamicToolSpec",
+          "type": "object"
+        },
+        {
+          "properties": {
+            "description": {
+              "type": "string"
+            },
+            "name": {
+              "type": "string"
+            },
+            "tools": {
+              "items": {
+                "$ref": "#/definitions/DynamicToolNamespaceTool"
+              },
+              "type": "array"
+            },
+            "type": {
+              "enum": [
+                "namespace"
+              ],
+              "title": "NamespaceDynamicToolSpecType",
+              "type": "string"
+            }
+          },
+          "required": [
+            "description",
+            "name",
+            "tools",
+            "type"
+          ],
+          "title": "NamespaceDynamicToolSpec",
+          "type": "object"
+        }
+      ]
+    },
     "FunctionCallOutputBody": {
       "anyOf": [
         {
@@ -238,6 +369,32 @@
           "type": "object"
         },
         {
+          "anyOf": [
+            {
+              "properties": {
+                "image_url": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "image_url"
+              ],
+              "title": "ImageUrlFunctionCallOutputContentItem",
+              "type": "object"
+            },
+            {
+              "properties": {
+                "file_id": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "file_id"
+              ],
+              "title": "FileIdFunctionCallOutputContentItem",
+              "type": "object"
+            }
+          ],
           "properties": {
             "detail": {
               "anyOf": [
@@ -249,9 +406,6 @@
                 }
               ]
             },
-            "image_url": {
-              "type": "string"
-            },
             "type": {
               "enum": [
                 "input_image"
@@ -261,7 +415,6 @@
             }
           },
           "required": [
-            "image_url",
             "type"
           ],
           "title": "InputImageFunctionCallOutputContentItem",
@@ -414,11 +567,17 @@
       ]
     },
     "Personality": {
+      "description": "Deprecated: `friendly` and `pragmatic` no longer select a style.",
       "enum": [
         "none",
         "friendly",
         "pragmatic"
       ],
+      "type": "string"
+    },
+    "ReasoningEffort": {
+      "description": "A non-empty reasoning effort value advertised by the model.",
+      "minLength": 1,
       "type": "string"
     },
     "ReasoningItemContent": {
@@ -806,7 +965,10 @@
         {
           "properties": {
             "call_id": {
-              "type": "string"
+              "type": [
+                "string",
+                "null"
+              ]
             },
             "id": {
               "type": [
@@ -824,6 +986,18 @@
                 }
               ]
             },
+            "name": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
+            "namespace": {
+              "type": [
+                "string",
+                "null"
+              ]
+            },
             "output": {
               "$ref": "#/definitions/FunctionCallOutputBody"
             },
@@ -836,7 +1010,6 @@
             }
           },
           "required": [
-            "call_id",
             "output",
             "type"
           ],
@@ -1124,6 +1297,27 @@
             "type"
           ],
           "title": "CompactionResponseItem",
+          "type": "object"
+        },
+        {
+          "description": "A durable input control interpreted by the backend at its position in history.",
+          "properties": {
+            "reasoning": {
+              "$ref": "#/definitions/ConfigurationReasoning"
+            },
+            "type": {
+              "enum": [
+                "configuration_update"
+              ],
+              "title": "ConfigurationUpdateResponseItemType",
+              "type": "string"
+            }
+          },
+          "required": [
+            "reasoning",
+            "type"
+          ],
+          "title": "ConfigurationUpdateResponseItem",
           "type": "object"
         },
         {
@@ -1424,6 +1618,10 @@
         "null"
       ]
     },
+    "excludeTurns": {
+      "description": "When true, return only thread metadata and live-resume state without populating `thread.turns`. This is useful when the client plans to call `thread/turns/list` immediately after resuming. Full-history hydration is deprecated for paginated threads; use this with `thread/turns/list` and `thread/items/list` instead.",
+      "type": "boolean"
+    },
     "model": {
       "description": "Configuration overrides for the resumed thread, if any.",
       "type": [
@@ -1445,7 +1643,8 @@
         {
           "type": "null"
         }
-      ]
+      ],
+      "description": "@deprecated `friendly` and `pragmatic` no longer select a style. Changing this does not rewrite the thread's existing instructions."
     },
     "sandbox": {
       "anyOf": [
