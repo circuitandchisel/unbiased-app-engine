@@ -4,7 +4,7 @@
 # it is regenerated from this template at startup and never reads ~/.codex,
 # so no leftover user config can point the engine anywhere but the Unbiased
 # gateway, and no client can accidentally reach OpenAI directly.
-model = "pareto-26.10-preview"
+model = "pareto"
 model_provider = "unbiased"
 model_reasoning_effort = "none"
 web_search = "disabled"
@@ -29,10 +29,10 @@ web_search = "disabled"
 # not Codex. That name is not configurable anywhere in the binary.
 mcp_oauth_callback_port = 45999
 
-# Pareto preview is not in codex's model catalog, so codex falls back to generic
+# Pareto is not in codex's model catalog, so codex falls back to generic
 # metadata and, critically, NO auto-compaction limit. Both halves are wrong for
-# us: pareto-26.10-preview serves a 1,048,576-token context window, and with no
-# limit nothing ever compacts, so history grows until the gateway refuses it.
+# us: the engine uses an explicit 1,048,576-token context window. With no
+# compaction limit, history grows until the gateway refuses it.
 #
 # Setting the window explicitly arms two separate mechanisms:
 #
@@ -50,10 +50,9 @@ mcp_oauth_callback_port = 45999
 # always costs one turn. The reactive path is the safety net for when this
 # window is wrong, not the primary plan.
 #
-# The value is the live gateway limit for pareto-26.10-preview. A direct
-# Responses API probe accepted 1,000,013 input tokens plus a 1-token completion,
-# and rejected a 1,050,013-token prompt with context_length_exceeded:
-# "maximum context length is 1048576 tokens including the completion."
+# Keep the existing window and compaction threshold when switching to the
+# gateway-managed pareto alias; changing the alias must not disable either
+# proactive or reactive compaction.
 #
 # Do NOT round this down for safety. Codex already applies its own margin:
 # effective_context_window_percent (95, not settable from config — Pareto is

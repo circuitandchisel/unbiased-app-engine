@@ -98,7 +98,7 @@ func TestRenderConfigStdioServer(t *testing.T) {
 		t.Error("stdio server must not emit http keys")
 	}
 	// And the provider lock still holds with servers present.
-	if !strings.Contains(cfg, `model = "pareto-26.10-preview"`) {
+	if !strings.Contains(cfg, `model = "pareto"`) {
 		t.Error("adding an mcp server must not disturb the provider lock")
 	}
 }
