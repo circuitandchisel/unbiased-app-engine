@@ -28,6 +28,9 @@ import (
 	"github.com/circuitandchisel/unbiased-app-engine/internal/environment"
 )
 
+// Set by release builds independently of the pinned app-server version.
+var version = "dev"
+
 func main() {
 	if err := run(); err != nil {
 		fmt.Fprintln(os.Stderr, "unbiased-app-engine:", err)
@@ -36,6 +39,10 @@ func main() {
 }
 
 func run() error {
+	if len(os.Args) == 2 && os.Args[1] == "--version" {
+		fmt.Println("unbiased-app-engine " + version)
+		return nil
+	}
 	if len(os.Args) > 1 && os.Args[1] == "auth-token" {
 		args := flag.NewFlagSet("auth-token", flag.ContinueOnError)
 		args.SetOutput(io.Discard)
