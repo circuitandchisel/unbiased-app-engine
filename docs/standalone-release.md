@@ -10,8 +10,8 @@ upstream archive checksums. Do not assume those version numbers are equal.
 - Make the existing release GitHub App's `RELEASE_APP_ID` and
   `RELEASE_APP_PRIVATE_KEY` secrets available to this repository.
 - Confirm that App has contents write access to the public
-  `circuitandchisel/unbiased-app-releases` repository, including main-branch
-  updates to the engine release pointer.
+  `circuitandchisel/unbiased-app-releases` repository. Publishing does not write
+  to its protected main branch.
 - Obtain explicit authorization before pushing a release tag. A merged PR does
   not itself publish the installer.
 
@@ -23,8 +23,11 @@ curl -fsSL https://raw.githubusercontent.com/circuitandchisel/unbiased-app-engin
 
 The installer is served directly from this public app-engine repository; it is
 not copied to the desktop releases repository. It becomes usable only once the
-installer is merged and the first workflow publishes both binaries and commits
-`engine-latest.txt` to the public app-releases repository.
+installer is merged and the first workflow publishes both binaries. Default
+installation discovers the highest published stable engine version through the
+GitHub releases API, with pagination and platform-asset filtering. It ignores
+desktop releases, drafts, prereleases, and incomplete releases. Version-pinned
+installation skips API discovery.
 Do not announce this as live before testing that exact public command.
 
 ## Release steps
@@ -38,16 +41,16 @@ Do not announce this as live before testing that exact public command.
    Each archive includes both executables, the app-server pin, version/platform
    metadata, file checksums, and redistributed licenses.
 4. The workflow creates a draft public release, verifies downloaded asset
-   checksums, publishes it, then updates the engine release pointer. Engine
-   releases always use `--latest=false` so the desktop
+   checksums, then publishes it. Engine releases always use `--latest=false`
+   so the desktop
    installer's existing `releases/latest` lookup remains on a desktop release.
-5. Confirm the public pointer, both assets, downloaded checksums, and exact
+5. Confirm both public assets, downloaded checksums, and the exact
    public install command on a clean Linux user profile. Verify the desktop
    latest release is unchanged. A green build alone is not publication.
 
 Published releases are immutable. A workflow rerun fails if its release already
-exists rather than replacing artifacts. If publication or the pointer update
-fails, inspect the existing release before repairing it; never automatically
+exists rather than replacing artifacts. If publication fails, inspect the
+existing release before repairing it; never automatically
 delete or overwrite a published tag. A later main commit requires a new version.
 
 ## Installation and rollback

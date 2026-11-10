@@ -33,8 +33,56 @@ tmp="$(mktemp -d)"
 trap 'rm -rf "$tmp"; rmdir "$root/.install-lock"' EXIT
 if [ "$rollback" = 0 ]; then
   if [ -z "$version" ]; then
-    tag="$(curl -fsSL --retry 3 "https://raw.githubusercontent.com/$repo/main/engine-latest.txt")"
-    [[ "$tag" =~ ^engine-v[0-9]+\.[0-9]+\.[0-9]+$ ]] || fail "Invalid engine release pointer"
+    # Discover only published engine releases. Do not depend on a main-branch
+    # pointer or /releases/latest, which belongs to the desktop distribution.
+    : > "$tmp/candidates"
+    for page in {1..20}; do
+      curl -fsSL --retry 3 -H 'Accept: application/vnd.github+json' \
+        -o "$tmp/releases.json" "https://api.github.com/repos/$repo/releases?per_page=100&page=$page" \
+        || fail "Could not list releases; retry later or pass --version X.Y.Z"
+      result="$(python3 - "$tmp/releases.json" "$platform" <<'PY'
+import json
+from pathlib import Path
+import re
+import sys
+releases = json.loads(Path(sys.argv[1]).read_text())
+if not isinstance(releases, list):
+    raise SystemExit("Error: Invalid GitHub release listing")
+candidates = []
+for release in releases:
+    if not isinstance(release, dict):
+        continue
+    tag = release.get("tag_name", "")
+    if not isinstance(tag, str) or not re.fullmatch(r"engine-v[0-9]+\.[0-9]+\.[0-9]+", tag):
+        continue
+    if release.get("draft") or release.get("prerelease") or not release.get("published_at"):
+        continue
+    assets = release.get("assets", [])
+    if not isinstance(assets, list):
+        continue
+    uploaded = {a.get("name") for a in assets if isinstance(a, dict)
+                and a.get("state") == "uploaded" and isinstance(a.get("name"), str)}
+    expected = "unbiased-app-engine-v" + tag[len("engine-v"):] + "-" + sys.argv[2] + ".tar.gz"
+    if {"SHA256SUMS", expected} <= uploaded:
+        candidates.append(tag)
+key = lambda tag: tuple(map(int, tag[len("engine-v"):].split(".")))
+print(max(candidates, key=key) if candidates else "-", len(releases))
+PY
+)"
+      read -r candidate count <<< "$result"
+      [ "$candidate" = "-" ] || printf '%s\n' "$candidate" >> "$tmp/candidates"
+      [ "$count" -eq 100 ] || break
+      [ "$page" -ne 20 ] || fail "Too many release pages; pass --version X.Y.Z"
+    done
+    tag="$(python3 - "$tmp/candidates" <<'PY'
+from pathlib import Path
+import sys
+tags = Path(sys.argv[1]).read_text().splitlines()
+if not tags:
+    raise SystemExit("Error: No published engine release for this platform; pass --version X.Y.Z")
+print(max(tags, key=lambda tag: tuple(map(int, tag[len("engine-v"):].split(".")))))
+PY
+)"
     version="${tag#engine-v}"
   fi
   [[ "$version" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]] || fail "Invalid version; expected X.Y.Z"

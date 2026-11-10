@@ -106,13 +106,3 @@ jobs:
           gh release download "$GITHUB_REF_NAME" --repo "$repo" --dir downloaded
           (cd downloaded && sha256sum -c SHA256SUMS)
           gh release edit "$GITHUB_REF_NAME" --repo "$repo" --draft=false --latest=false
-          # Pointer changes last, only after all public assets are published.
-          gh auth setup-git
-          gh repo clone "$repo" public-release
-          printf '%s\n' "$GITHUB_REF_NAME" > public-release/engine-latest.txt
-          cd public-release
-          git config user.name "Unbiased release bot"
-          git config user.email "release-bot@users.noreply.github.com"
-          git add engine-latest.txt
-          git commit -m "Publish standalone engine $version pointer"
-          git push origin HEAD:main
