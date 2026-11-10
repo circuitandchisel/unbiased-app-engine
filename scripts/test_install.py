@@ -1,6 +1,7 @@
 """Offline installer regressions; never contacts GitHub or starts model requests."""
 import hashlib
 import io
+import json
 import os
 from pathlib import Path
 import shutil
@@ -30,9 +31,15 @@ class InstallerTests(unittest.TestCase):
                         FIXTURES=str(self.downloads))
         self.script("uname", '#!/bin/sh\n[ "$1" = -s ] && echo Linux || echo x86_64\n')
         self.script("curl", """#!/usr/bin/env python3
-import os, pathlib, shutil, sys
+import os, pathlib, shutil, sys, urllib.parse
 args = sys.argv[1:]
-source = pathlib.Path(os.environ["FIXTURES"]) / args[-1].rsplit("/", 1)[-1]
+url = urllib.parse.urlparse(args[-1])
+if url.hostname == "api.github.com":
+    page = urllib.parse.parse_qs(url.query)["page"][0]
+    name = "releases-" + page + ".json"
+else:
+    name = url.path.rsplit("/", 1)[-1]
+source = pathlib.Path(os.environ["FIXTURES"]) / name
 if "-o" in args:
     shutil.copyfile(source, args[args.index("-o") + 1])
 else:
@@ -73,7 +80,16 @@ else:
                 tar.addfile(bad_entry)
         checksum = hashlib.sha256(archive.read_bytes()).hexdigest()
         (self.downloads / "SHA256SUMS").write_text(checksum + "  " + name + "\n")
-        (self.downloads / "engine-latest.txt").write_text("engine-v" + version + "\n")
+        self.write_releases([self.release(version)])
+
+    def release(self, version):
+        return {"tag_name": "engine-v" + version, "published_at": "2026-11-10T00:00:00Z",
+                "draft": False, "prerelease": False,
+                "assets": [{"name": name, "state": "uploaded"} for name in (
+                    "SHA256SUMS", "unbiased-app-engine-v" + version + "-linux-x64.tar.gz")]}
+
+    def write_releases(self, releases, page=1):
+        (self.downloads / ("releases-" + str(page) + ".json")).write_text(json.dumps(releases))
 
     def run_install(self, *args, success=True):
         result = subprocess.run(["bash", str(INSTALLER), *args], env=self.env,
@@ -136,10 +152,37 @@ else:
         self.bundle("0.1.0", platform="linux-arm64")
         self.run_install(success=False)
 
-    def test_invalid_version_and_pointer_rejected(self):
+    def test_invalid_version_and_metadata_rejected(self):
         self.run_install("--version", "../other", success=False)
-        (self.downloads / "engine-latest.txt").write_text("v1.13.35")
+        self.write_releases({"message": "API error"})
         self.run_install(success=False)
+
+    def test_filters_desktop_draft_prerelease_and_incomplete_releases(self):
+        draft = dict(self.release("99.0.0"), draft=True)
+        prerelease = dict(self.release("98.0.0"), prerelease=True)
+        incomplete = dict(self.release("97.0.0"), assets=[])
+        self.write_releases([{"tag_name": "v1.13.35"}, draft, prerelease, incomplete,
+                             self.release("0.1.0")])
+        self.run_install()
+        self.assertEqual(self.active(), "0.1.0")
+
+    def test_discovers_older_pages_and_sorts_versions_numerically(self):
+        self.bundle("0.10.0")
+        self.write_releases([{"tag_name": "v1.0.0"}] * 99 + [self.release("0.9.0")])
+        self.write_releases([self.release("0.10.0")], page=2)
+        self.run_install()
+        self.assertEqual(self.active(), "0.10.0")
+
+    def test_pinned_install_does_not_need_release_listing(self):
+        (self.downloads / "releases-1.json").unlink()
+        self.run_install("--version", "0.1.0")
+        self.assertEqual(self.active(), "0.1.0")
+
+    def test_no_usable_release_keeps_existing_install(self):
+        self.run_install()
+        self.write_releases([])
+        self.run_install(success=False)
+        self.assertEqual(self.active(), "0.1.0")
 
     def test_existing_unmanaged_command_preserved(self):
         self.bin.mkdir()
