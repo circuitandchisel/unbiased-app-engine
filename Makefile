@@ -5,10 +5,12 @@
 # The desktop app's build copies that directory into its package and spawns
 # unbiased-app-engine from it — nothing else crosses the repo boundary.
 
-.PHONY: build test fetch bundle conformance clean
+VERSION := $(shell cat VERSION)
+LDFLAGS := -X main.version=$(VERSION)
+.PHONY: build test fetch bundle release-bundle conformance clean
 
 build:
-	go build -o bin/unbiased-app-engine ./cmd/unbiased-app-engine
+	go build -ldflags "$(LDFLAGS)" -o bin/unbiased-app-engine ./cmd/unbiased-app-engine
 
 test:
 	go vet ./...
@@ -26,12 +28,15 @@ bin/pareto-app-server: engine.lock scripts/fetch-engine.sh
 bundle: bin/pareto-app-server LICENSE NOTICE THIRD_PARTY_NOTICES.md third_party/openai-codex/NOTICE
 	rm -rf dist/bundle
 	mkdir -p dist/bundle/licenses/openai-codex
-	go build -o dist/bundle/unbiased-app-engine ./cmd/unbiased-app-engine
+	go build -ldflags "$(LDFLAGS)" -o dist/bundle/unbiased-app-engine ./cmd/unbiased-app-engine
 	cp bin/pareto-app-server dist/bundle/
 	cp LICENSE NOTICE THIRD_PARTY_NOTICES.md dist/bundle/
 	cp LICENSE dist/bundle/licenses/openai-codex/LICENSE
 	cp third_party/openai-codex/NOTICE dist/bundle/licenses/openai-codex/NOTICE
 	@echo "bundle ready: dist/bundle/ ($$(du -sh dist/bundle | cut -f1))"
+
+release-bundle:
+	scripts/build-release.sh
 
 # Live suite: spends a handful of small Pareto turns through the production
 # gateway. Needs `unbiased login` (or UNBIASED_API_KEY).

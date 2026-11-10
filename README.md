@@ -19,6 +19,35 @@ Unbiased desktop app.
 
 ## Quickstart
 
+### Standalone Linux installation
+
+The standalone release pipeline is prepared in this repository. After the first
+engine release is published, the public installer command will be:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/circuitandchisel/unbiased-app-engine/main/install.sh | bash
+```
+
+This installs the Go supervisor and its checksum-verified, pinned app-server
+together for Linux x64 or ARM64. Requires Bash, curl, and Python 3; no compiler,
+Rust toolchain, administrator access, or desktop GUI is needed.
+The command is `~/.local/bin/unbiased-engine`; add that directory to your PATH
+if necessary. Authentication remains separate: provide `UNBIASED_API_KEY` or an
+existing remote `~/.unbiased/credentials.json`. Installation does not transfer
+desktop credentials, start a daemon, or make model requests.
+
+This is a JSON-RPC runtime for desktop SSH integration, not an interactive chat
+CLI. Command execution still needs a functioning Linux sandbox (including
+bubblewrap and permitted user namespaces) unless the user selects Full Access.
+
+To pin an independent runtime version, append `| bash -s -- --version 0.1.0`
+instead of `| bash`. To restore the previous installed runtime, use
+`| bash -s -- --rollback`. Existing running processes continue using their
+original version; restart the desktop SSH runtime to use an upgrade or rollback.
+See [standalone release procedure](docs/standalone-release.md).
+
+### Build from source
+
 ```bash
 make fetch build                              # verified engine + supervisor in bin/
 bin/unbiased-app-engine                       # speaks JSONL JSON-RPC on stdio

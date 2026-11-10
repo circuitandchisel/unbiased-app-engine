@@ -28,6 +28,11 @@ jobs:
       - name: Test
         run: make test
 
+      - name: Test standalone installer
+        run: |
+          bash -n install.sh scripts/build-release.sh
+          python3 scripts/test_install.py
+
   bundle-gate:
     name: Forked server bundle
     needs: tests-gate
@@ -52,3 +57,16 @@ jobs:
           version="$(sed -n 's/^version = //p' engine.lock)"
           test "$(dist/bundle/pareto-app-server --version)" = "codex-app-server $version"
           test -x dist/bundle/unbiased-app-engine
+
+  standalone-gate:
+    name: Standalone Linux install
+    needs: tests-gate
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-go@b7ad1dad31e06c5925ef5d2fc7ad053ef454303e # v7.0.0
+        with:
+          go-version-file: go.mod
+          cache: true
+      - run: scripts/build-release.sh
+      - run: python3 scripts/smoke_release.py dist/release/*.tar.gz
