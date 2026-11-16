@@ -40,7 +40,7 @@ This is a JSON-RPC runtime for desktop SSH integration, not an interactive chat
 CLI. Command execution still needs a functioning Linux sandbox (including
 bubblewrap and permitted user namespaces) unless the user selects Full Access.
 
-To pin an independent runtime version, append `| bash -s -- --version 0.1.0`
+To pin an independent runtime version, append `| bash -s -- --version 0.1.1`
 instead of `| bash`. To restore the previous installed runtime, use
 `| bash -s -- --rollback`. Existing running processes continue using their
 original version; restart the desktop SSH runtime to use an upgrade or rollback.
